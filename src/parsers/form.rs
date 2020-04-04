@@ -276,6 +276,16 @@ impl<'a> Parser<'a> {
                         Err(SyntaxError::at(self.pos()))
                     }
                 },
+                Token::LeftBracket => {
+                    let pos = self.pos();
+                    let arg = self.parse_with(next, 0)?;
+                    if *next == Some(Token::RightBracket) {
+                        *next = self.lexer.next().transpose()?;
+                        Ok(arg)
+                    } else {
+                        Err(SyntaxError::at(pos))
+                    }
+                },
                 _ => Err(SyntaxError::at(self.pos()))
             }
         } else {
@@ -395,6 +405,36 @@ impl<'a> Parser<'a> {
                         Err(SyntaxError::at(self.pos()))
                     }
                 },
+                Token::LeftBracket => {
+                    let pos = self.pos();
+                    let head = left;
+                    let args = self.parse_with(next, 0)?;
+                    if *next == Some(Token::RightBracket) {
+                        *next = self.lexer.next().transpose()?;
+                        if let Sequence(args) = args {
+                            Ok(expression::Function{head, args}.into())
+                        } else {
+                            let args = vec![args];
+                            Ok(expression::Function{head, args}.into())
+                        }
+                    } else {
+                        Err(SyntaxError::at(pos))
+                    }
+                },
+                Token::LeftSquareBracket => {
+                    let pos = self.pos();
+                    if let Symbol(_) = left {
+                        let right = self.parse_with(next, 0)?;
+                        if *next == Some(Token::RightSquareBracket) {
+                            *next = self.lexer.next().transpose()?;
+                            Ok(Coefficient(vec![left, right]))
+                        } else {
+                            Err(SyntaxError::at(pos))
+                        }
+                    } else {
+                        Err(SyntaxError::at(pos))
+                    }
+                },
                 _ => Err(SyntaxError::at(self.pos()))
             }
         } else {
@@ -412,6 +452,8 @@ impl<'a> Parser<'a> {
             match token {
                 Symbol(_) => Ok(0),
                 Integer(_) => Ok(0),
+                RightBracket => Ok(0),
+                RightSquareBracket => Ok(0),
                 Semicolon => Ok(10),
                 Comma => Ok(20),
                 Equals => Ok(30),
@@ -421,6 +463,8 @@ impl<'a> Parser<'a> {
                 Divide => Ok(50),
                 Power => Ok(70),
                 Dot => Ok(80),
+                LeftBracket => Ok(90),
+                LeftSquareBracket => Ok(100),
                 Wildcard => Ok(PREC_WILDCARD),
                 _ => Err(SyntaxError::at(self.pos()))
             }
@@ -436,7 +480,7 @@ impl<'a> Parser<'a> {
 
 const PREC_UPLUS: usize = 60;
 const PREC_UMINUS: usize = PREC_UPLUS;
-const PREC_WILDCARD: usize = 90;
+const PREC_WILDCARD: usize = 110;
 
 #[cfg(test)]
 mod tests {
@@ -606,9 +650,7 @@ foo = [bar][as^3];
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + 1 + b";
-        let a: &[u8] = b"a";
         let b: &[u8] = b"b";
-        let int: &[u8] = b"1";
         let res = Plus(vec![Symbol(a), Integer(int), Symbol(b)]);
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
@@ -627,6 +669,74 @@ foo = [bar][as^3];
         let res = Times(vec![Symbol(a), Power(vec![Integer(int), Symbol(b)])]);
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
+    }
+
+    #[test]
+    fn tst_parse_brackets() {
+        log_init();
+        use Expression::*;
+
+        let a: &[u8] = b"a";
+        let b: &[u8] = b"b";
+        let int: &[u8] = b"1";
+
+        let expr: &[u8] = b" ( a + 1 )";
+        let res = Plus(vec![Symbol(a), Integer(int)]);
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+
+        let expr: &[u8] = b" a + (1 - b)";
+        let res = Plus(vec![Symbol(a), Minus(vec![Integer(int), Symbol(b)])]);
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+
+        let expr: &[u8] = b" (a * 1) ^ b";
+        let res = Power(vec![Times(vec![Symbol(a), Integer(int)]), Symbol(b)]);
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+    }
+
+    #[test]
+    fn tst_parse_square_brackets() {
+        log_init();
+        use Expression::*;
+
+        let a: &[u8] = b"a";
+        let b: &[u8] = b"b";
+        let int: &[u8] = b"1";
+
+        let expr: &[u8] = b"a[1]";
+        let res = Coefficient(vec![Symbol(a), Integer(int)]);
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+
+        let expr: &[u8] = b" b^a[1]";
+        let res = Power(vec![Symbol(b), Coefficient(vec![Symbol(a), Integer(int)])]);
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+
+    }
+
+    #[test]
+    fn tst_parse_function() {
+        log_init();
+        use Expression::*;
+
+        let a: &[u8] = b"a";
+        let b: &[u8] = b"b";
+        let int: &[u8] = b"1";
+
+        let fun = expression::Function{head: Symbol(a), args: vec![Integer(int)]};
+        let expr: &[u8] = b"a(1)";
+        let res = fun.clone().into();
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+
+        let expr: &[u8] = b" b^a(1)";
+        let res = Power(vec![Symbol(b), fun.into()]);
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+
     }
 
 
