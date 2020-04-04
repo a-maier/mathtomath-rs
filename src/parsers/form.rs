@@ -6,14 +6,14 @@ use std::{
 };
 use nom::{
     IResult,
-    bytes::complete::{is_not, tag, take_while, take_while1},
+    bytes::complete::{is_not, tag, take_while, take_while1, take_until},
     branch::alt,
     character::{
         complete::{char, one_of},
         is_alphabetic, is_alphanumeric, is_digit,
     },
     multi::many0,
-    sequence::{delimited, tuple},
+    sequence::{delimited, preceded, terminated, tuple},
     combinator::opt,
 };
 
@@ -122,12 +122,32 @@ fn ellipsis(i: &[u8]) -> IResult<&[u8], &[u8]> {
     tag("...")(i)
 }
 
-fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while(|u: u8| u.is_ascii_whitespace())(i)
-}
-
 fn reverse<T,U>(tuple: (T, U)) -> (U, T) {
     (tuple.1, tuple.0)
+}
+
+// only call this at the start of the input or if the last byte was a linebreak
+fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (rest, _) = terminated(
+        preceded(char('*'), take_until("\n")), char('\n')
+    )(i)?;
+    let comment_len = i.len() - rest.len();
+    Ok(reverse(i.split_at(comment_len)))
+}
+
+fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (rest, space) = take_while(|u: u8| u.is_ascii_whitespace())(i)?;
+    if let Some(b'\n') = space.last() {
+        if let Ok((rest, _)) = comment(rest) {
+            let total_len = if let Ok((rest, _)) = whitespace(rest) {
+                i.len() - rest.len()
+            } else {
+                i.len() - rest.len()
+            };
+            return Ok(reverse(i.split_at(total_len)));
+        }
+    }
+    Ok((rest, space))
 }
 
 fn operator_or_bracket(i: &[u8]) -> IResult<&[u8], &[u8]> {
@@ -155,10 +175,18 @@ struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn for_input(input: &'a [u8]) -> Lexer<'a> {
-        Lexer{
-            remaining_input: input,
-            pos: 0,
-            last_token_was_a_symbol: false,
+        if let Ok((rest, comment)) = comment(input) {
+            Lexer{
+                remaining_input: rest,
+                pos: comment.len(),
+                last_token_was_a_symbol: false,
+            }
+        } else {
+            Lexer{
+                remaining_input: input,
+                pos: 0,
+                last_token_was_a_symbol: false,
+            }
         }
     }
 
@@ -496,9 +524,13 @@ mod tests {
 
         use Token::*;
         let expr =
-            "+ 35 - [iπs[a]f]?.q / den(4*a^-3, $a) + ln_(x1,...,x6);
+            "* this is a comment
+ + 35 - [iπs[a]f]?.q / den(4*a^-3, $a) + ln_(x1,...,x6);
+* [ this is also a comment
 foo = [bar][as^3];
-#include- i_cannot_parse_this anymore
+ * [this is
+*not a comment]
+#include- << parse fails here
 ".as_bytes();
         let mut p = Lexer::for_input(&expr);
         assert_eq!(p.next(), Some(Ok(Plus)));
@@ -554,6 +586,9 @@ foo = [bar][as^3];
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
         assert_eq!(p.next(), Some(Ok(RightSquareBracket)));
         assert_eq!(p.next(), Some(Ok(Semicolon)));
+        assert_eq!(p.next(), Some(Ok(Times)));
+        let slice: &[u8] = b"[this is\n*not a comment]";
+        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
         assert_matches!(p.next(), Some(Err(_)));
 
         assert_eq!(p.next(), None);
