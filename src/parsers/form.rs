@@ -208,6 +208,7 @@ impl<'a> Iterator for Lexer<'a> {
             return Some(Ok(Token::Integer(token)))
         }
         let err = SyntaxError::at(self.pos());
+        self.remaining_input = b"";
         debug!("{}", err);
         Some(Err(err))
     }
@@ -286,6 +287,8 @@ foo = [bar][as^3];
         assert_eq!(p.next(), Some(Ok(RightSquareBracket)));
         assert_eq!(p.next(), Some(Ok(Semicolon)));
         assert_matches!(p.next(), Some(Err(_)));
+
+        assert_eq!(p.next(), None);
 
         let expr: &[u8] = b"+ ";
         let mut p = Lexer::for_input(&expr);
