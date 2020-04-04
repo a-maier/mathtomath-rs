@@ -62,24 +62,24 @@ const STR_TO_TOKEN: phf::Map<&'static [u8], Token<'static>> = phf_map!{
 
 #[derive(Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 pub struct SyntaxError {
-    pub previous: String,
-    pub next: String,
+    pos: usize,
 }
 
 impl error::Error for SyntaxError { }
 
 impl SyntaxError {
-    pub fn at((previous, next): (String, String)) -> SyntaxError {
-        SyntaxError{previous, next}
+    pub fn at(pos: usize) -> SyntaxError {
+        SyntaxError{pos}
+    }
+
+    pub fn pos(&self) -> usize {
+        self.pos
     }
 }
 
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f, "syntax error here: {1}\n while parsing {0}{1}",
-            self.previous, self.next
-        )
+        write!(f, "syntax error at position {}", self.pos())
     }
 }
 
@@ -146,11 +146,9 @@ fn operator_or_bracket(i: &[u8]) -> IResult<&[u8], &[u8]> {
     }
 }
 
-const CONTEXT_LEN: usize = 10;
 #[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 struct Lexer<'a> {
-    input: &'a [u8],
-    remaining: &'a [u8],
+    remaining_input: &'a [u8],
     pos: usize,
     last_token_was_a_symbol: bool,
 }
@@ -158,8 +156,7 @@ struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn for_input(input: &'a [u8]) -> Lexer<'a> {
         Lexer{
-            input: input,
-            remaining: input,
+            remaining_input: input,
             pos: 0,
             last_token_was_a_symbol: false,
         }
@@ -168,18 +165,11 @@ impl<'a> Lexer<'a> {
     fn parse_success(&mut self, token: &'a [u8], new_remaining: &'a [u8]) {
         debug!("parsed '{}'", from_utf8(token).unwrap());
         self.pos += token.len();
-        debug_assert!(self.pos <= self.input.len());
-        self.remaining = new_remaining;
+        self.remaining_input = new_remaining;
     }
 
-    fn get_context(&self, context_len: usize) -> (String, String) {
-        let start = cmp::max(self.pos, context_len) - context_len;
-        let end = cmp::min(self.pos + context_len, self.input.len());
-        let (before, after) = self.input[start..end].split_at(self.pos - start);
-        (
-            from_utf8(before).expect("valid utf8 string").into(),
-            from_utf8(after).expect("valid utf8 string").into()
-        )
+    fn pos(&self) -> usize {
+        self.pos
     }
 }
 
@@ -187,38 +177,38 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Token<'a>, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        trace!("lexer called on {}", from_utf8(self.remaining).unwrap());
-        let (remaining, ws) = whitespace(self.remaining).unwrap();
+        trace!("lexer called on {}", from_utf8(self.remaining_input).unwrap());
+        let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
         if !ws.is_empty() {
-            self.parse_success(ws, remaining);
+            self.parse_success(ws, remaining_input);
         }
-        if self.remaining.is_empty() {
+        if self.remaining_input.is_empty() {
             return None;
         }
         // a square bracket directly following a symbol indicates the cofficient
         // of some expression, not a new symbol
-        if self.last_token_was_a_symbol && self.remaining.first() == Some(& b'[') {
+        if self.last_token_was_a_symbol && self.remaining_input.first() == Some(& b'[') {
             self.last_token_was_a_symbol = false;
-            let (token, remaining) = self.remaining.split_at(1);
-            self.parse_success(token, remaining);
+            let (token, remaining_input) = self.remaining_input.split_at(1);
+            self.parse_success(token, remaining_input);
             return Some(Ok(Token::LeftSquareBracket))
         }
-        if let Ok((remaining, token)) = symbol(self.remaining) {
-            self.parse_success(token, remaining);
+        if let Ok((remaining_input, token)) = symbol(self.remaining_input) {
+            self.parse_success(token, remaining_input);
             self.last_token_was_a_symbol = true;
             return Some(Ok(Token::Symbol(token)))
         }
         self.last_token_was_a_symbol = false;
-        if let Ok((remaining, token)) = operator_or_bracket(remaining) {
-            self.parse_success(token, remaining);
+        if let Ok((remaining_input, token)) = operator_or_bracket(remaining_input) {
+            self.parse_success(token, remaining_input);
             return Some(Ok(STR_TO_TOKEN[token]))
         }
-        if let Ok((remaining, token)) = integer(remaining) {
-            self.parse_success(token, remaining);
+        if let Ok((remaining_input, token)) = integer(remaining_input) {
+            self.parse_success(token, remaining_input);
             return Some(Ok(Token::Integer(token)))
         }
-        let err = SyntaxError::at(self.get_context(CONTEXT_LEN));
-        debug!("{:?}", err);
+        let err = SyntaxError::at(self.pos());
+        debug!("{}", err);
         Some(Err(err))
     }
 }
