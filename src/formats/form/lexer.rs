@@ -1,8 +1,6 @@
-use std::{
-    error,
-    fmt,
-    str::from_utf8
-};
+use super::error::*;
+
+use std::str::from_utf8;
 
 use nom::{
     IResult,
@@ -59,29 +57,6 @@ const STR_TO_TOKEN: phf::Map<&'static [u8], Token<'static>> = phf_map!{
     b"," => Token::Comma,
     b";" => Token::Semicolon,
 };
-
-#[derive(Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
-pub struct SyntaxError {
-    pos: usize,
-}
-
-impl error::Error for SyntaxError { }
-
-impl SyntaxError {
-    pub fn at(pos: usize) -> SyntaxError {
-        SyntaxError{pos}
-    }
-
-    pub fn pos(&self) -> usize {
-        self.pos
-    }
-}
-
-impl fmt::Display for SyntaxError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "syntax error at position {}", self.pos())
-    }
-}
 
 fn integer(i: &[u8]) -> IResult<&[u8], &[u8]> {
     take_while1(is_digit)(i)
