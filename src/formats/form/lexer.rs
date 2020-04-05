@@ -1,4 +1,4 @@
-use super::error::{SyntaxError, ErrorKind::*};
+use crate::error::{SyntaxError, ErrorKind::*};
 
 use std::str::from_utf8;
 

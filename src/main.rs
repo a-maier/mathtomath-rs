@@ -5,6 +5,7 @@ extern crate assert_matches;
 #[macro_use]
 extern crate phf;
 
+mod error;
 mod expression;
 mod formats;
 

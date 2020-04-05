@@ -1,5 +1,5 @@
-use super::error::{SyntaxError, ErrorKind::*};
 use super::lexer::{Lexer, Token};
+use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::{self, Expression};
 
 struct Parser<'a> {
