@@ -48,11 +48,11 @@ impl<'a> Parser<'a> {
                 Token::Integer(int) => Ok(Integer(int)),
                 Token::Plus => {
                     let arg = self.parse_with(next, PREC_UPLUS)?;
-                    Ok(Plus(vec![arg]))
+                    Ok(UPlus(Box::new(arg)))
                 },
                 Token::Minus => {
                     let arg = self.parse_with(next, PREC_UMINUS)?;
-                    Ok(Minus(vec![arg]))
+                    Ok(UMinus(Box::new(arg)))
                 },
                 Token::Wildcard => {
                     let arg = self.parse_with(next, PREC_WILDCARD)?;
@@ -88,144 +88,49 @@ impl<'a> Parser<'a> {
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("left called on token {:?}", token);
         use Expression::*;
+        let pos = self.pos();
+        let right_binding_power = self.left_binding_power(token)?;
+        let right = self.parse_with(next, right_binding_power)?;
         if let Some(t) = token {
             match t {
-                // TODO: code duplication
-                // TODO: only accept Many0Wildcard in Sequence
-                // left-associative operators with two or more arguments
-                Token::Semicolon => {
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Compound(mut args) = left {
-                        args.push(right);
-                        Ok(Compound(args))
-                    } else {
-                        Ok(Compound(vec![left, right]))
-                    }
-                },
-                Token::Comma => {
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Sequence(mut args) = left {
-                        args.push(right);
-                        Ok(Sequence(args))
-                    } else {
-                        Ok(Sequence(vec![left, right]))
-                    }
-                },
-                Token::Plus => {
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Plus(mut args) = left {
-                        args.push(right);
-                        Ok(Plus(args))
-                    } else {
-                        Ok(Plus(vec![left, right]))
-                    }
-                },
-                Token::Times => {
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Times(mut args) = left {
-                        args.push(right);
-                        Ok(Times(args))
-                    } else {
-                        Ok(Times(vec![left, right]))
-                    }
-                },
-                Token::Minus => {
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Minus(mut args) = left {
-                        args.push(right);
-                        Ok(Minus(args))
-                    } else {
-                        Ok(Minus(vec![left, right]))
-                    }
-                },
-                Token::Divide => {
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Divide(mut args) = left {
-                        args.push(right);
-                        Ok(Divide(args))
-                    } else {
-                        Ok(Divide(vec![left, right]))
-                    }
-                },
-                // non-associative operators
-                Token::Equals => {
-                    let pos = self.pos();
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Equals(_) = right {
-                        Err(SyntaxError::at(pos))
-                    } else {
-                        Ok(Equals(vec![left, right]))
-                    }
-                },
-                Token::Power => {
-                    let pos = self.pos();
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Power(_) = right {
-                        Err(SyntaxError::at(pos))
-                    } else {
-                        Ok(Power(vec![left, right]))
-                    }
-                },
-                Token::Dot => {
-                    let pos = self.pos();
-                    let right_binding_power = self.left_binding_power(token)?;
-                    let right = self.parse_with(next, right_binding_power)?;
-                    if let Dot(_) = right {
-                        Err(SyntaxError::at(pos))
-                    } else {
-                        Ok(Dot(vec![left, right]))
-                    }
-                },
+                //TODO: code duplication
+                Token::Semicolon => Ok(Compound(Box::new((left, right)))),
+                Token::Comma => Ok(Sequence(Box::new((left, right)))),
+                Token::Plus => Ok(Plus(Box::new((left, right)))),
+                Token::Times => Ok(Times(Box::new((left, right)))),
+                Token::Minus => Ok(Minus(Box::new((left, right)))),
+                Token::Divide => Ok(Divide(Box::new((left, right)))),
+                Token::Equals => Ok(Equals(Box::new((left, right)))),
+                Token::Power => Ok(Power(Box::new((left, right)))),
+                Token::Dot => Ok(Dot(Box::new((left, right)))),
                 Token::Wildcard => {
                     if let Symbol(name) = left {
                         let sym = expression::Symbol(name);
                         Ok(Wildcard(sym))
                     } else {
-                        Err(SyntaxError::at(self.pos()))
+                        Err(SyntaxError::at(pos))
                     }
                 },
                 Token::LeftBracket => {
-                    let pos = self.pos();
-                    let head = left;
-                    let args = self.parse_with(next, 0)?;
                     if *next == Some(Token::RightBracket) {
                         *next = self.lexer.next().transpose()?;
-                        if let Sequence(args) = args {
-                            Ok(expression::Function{head, args}.into())
-                        } else {
-                            let args = vec![args];
-                            Ok(expression::Function{head, args}.into())
-                        }
+                        Ok(Function(Box::new((left, right))))
                     } else {
                         Err(SyntaxError::at(pos))
                     }
                 },
                 Token::LeftSquareBracket => {
-                    let pos = self.pos();
-                    if let Symbol(_) = left {
-                        let right = self.parse_with(next, 0)?;
-                        if *next == Some(Token::RightSquareBracket) {
-                            *next = self.lexer.next().transpose()?;
-                            Ok(Coefficient(vec![left, right]))
-                        } else {
-                            Err(SyntaxError::at(pos))
-                        }
+                    if *next == Some(Token::RightSquareBracket) {
+                        *next = self.lexer.next().transpose()?;
+                        Ok(Coefficient(Box::new((left, right))))
                     } else {
                         Err(SyntaxError::at(pos))
                     }
                 },
-                _ => Err(SyntaxError::at(self.pos()))
+                _ => Err(SyntaxError::at(pos))
             }
         } else {
-            Err(SyntaxError::at(self.pos()))
+            Err(SyntaxError::at(pos))
         }
     }
 
@@ -331,12 +236,12 @@ mod tests {
         use Expression::*;
 
         let expr: &[u8] = b"+ 1294239933299328";
-        let res = Plus(vec![Integer(&expr[2..])]);
+        let res = UPlus(Box::new(Integer(&expr[2..])));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b"-1294239933299328";
-        let res = Minus(vec![Integer(&expr[1..])]);
+        let res = UMinus(Box::new(Integer(&expr[1..])));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
@@ -358,28 +263,28 @@ mod tests {
         let expr: &[u8] = b" a + 1 ";
         let a: &[u8] = b"a";
         let int: &[u8] = b"1";
-        let res = Plus(vec![Symbol(a), Integer(int)]);
+        let res = Plus(Box::new((Symbol(a), Integer(int))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + 1 + b";
         let b: &[u8] = b"b";
-        let res = Plus(vec![Symbol(a), Integer(int), Symbol(b)]);
+        let res = Plus(Box::new((Plus(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + 1 - b";
-        let res = Minus(vec![Plus(vec![Symbol(a), Integer(int)]), Symbol(b)]);
+        let res = Minus(Box::new((Plus(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a * 1 - b";
-        let res = Minus(vec![Times(vec![Symbol(a), Integer(int)]), Symbol(b)]);
+        let res = Minus(Box::new((Times(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a * 1 ^ b";
-        let res = Times(vec![Symbol(a), Power(vec![Integer(int), Symbol(b)])]);
+        let res = Times(Box::new((Symbol(a), Power(Box::new((Integer(int), Symbol(b)))))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
     }
@@ -394,17 +299,17 @@ mod tests {
         let int: &[u8] = b"1";
 
         let expr: &[u8] = b" ( a + 1 )";
-        let res = Plus(vec![Symbol(a), Integer(int)]);
+        let res = Plus(Box::new((Symbol(a), Integer(int))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + (1 - b)";
-        let res = Plus(vec![Symbol(a), Minus(vec![Integer(int), Symbol(b)])]);
+        let res = Plus(Box::new((Symbol(a), Minus(Box::new((Integer(int), Symbol(b)))))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" (a * 1) ^ b";
-        let res = Power(vec![Times(vec![Symbol(a), Integer(int)]), Symbol(b)]);
+        let res = Power(Box::new((Times(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
     }
@@ -419,12 +324,12 @@ mod tests {
         let int: &[u8] = b"1";
 
         let expr: &[u8] = b"a[1]";
-        let res = Coefficient(vec![Symbol(a), Integer(int)]);
+        let res = Coefficient(Box::new((Symbol(a), Integer(int))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" b^a[1]";
-        let res = Power(vec![Symbol(b), Coefficient(vec![Symbol(a), Integer(int)])]);
+        let res = Power(Box::new((Symbol(b), Coefficient(Box::new((Symbol(a), Integer(int)))))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
@@ -439,14 +344,14 @@ mod tests {
         let b: &[u8] = b"b";
         let int: &[u8] = b"1";
 
-        let fun = expression::Function{head: Symbol(a), args: vec![Integer(int)]};
+        let fun = Function(Box::new((Symbol(a), Integer(int))));
         let expr: &[u8] = b"a(1)";
         let res = fun.clone().into();
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" b^a(1)";
-        let res = Power(vec![Symbol(b), fun.into()]);
+        let res = Power(Box::new((Symbol(b), fun.into())));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 

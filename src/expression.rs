@@ -1,5 +1,7 @@
 use std::convert::From;
 
+type Args<'a> = Box<(Expression<'a>, Expression<'a>)>;
+
 #[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 pub enum Expression<'a> {
     Empty,
@@ -8,19 +10,20 @@ pub enum Expression<'a> {
     Symbol(&'a [u8]),
     Wildcard(Symbol<'a>),
     Many0Wildcard(Symbol<'a>),
-    Plus(Vec<Expression<'a>>),
-    Minus(Vec<Expression<'a>>),
-    Times(Vec<Expression<'a>>),
-    Divide(Vec<Expression<'a>>),
-    Compound(Vec<Expression<'a>>),
-    Coefficient(Vec<Expression<'a>>),
-    Sequence(Vec<Expression<'a>>),
-    Equals(Vec<Expression<'a>>),
-    Dot(Vec<Expression<'a>>),
-    Power(Vec<Expression<'a>>),
+    UPlus(Box<Expression<'a>>),
+    UMinus(Box<Expression<'a>>),
+    Plus(Args<'a>),
+    Minus(Args<'a>),
+    Times(Args<'a>),
+    Divide(Args<'a>),
+    Compound(Args<'a>),
+    Coefficient(Args<'a>),
+    Sequence(Args<'a>),
+    Equals(Args<'a>),
+    Dot(Args<'a>),
+    Power(Args<'a>),
     Ellipsis,
-    ScalarProduct,
-    Function(Box<Function<'a>>),
+    Function(Args<'a>),
 }
 
 #[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
@@ -50,33 +53,12 @@ impl<'a> From<Symbol<'a>> for Expression<'a> {
     }
 }
 
-#[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
-pub struct Function<'a> {
-    pub head: Expression<'a>,
-    pub args: Vec<Expression<'a>>,
-}
-
-impl<'a> From<Function<'a>> for Expression<'a> {
-    fn from(f: Function<'a>) -> Self {
-        Expression::Function(Box::new(f))
-    }
-}
-
 #[derive(Copy,Clone,Eq,Default,PartialEq,Ord,PartialOrd,Hash,Debug)]
 pub struct Ellipsis {}
 
 impl<'a> From<Ellipsis> for Expression<'a> {
     fn from(_dots: Ellipsis) -> Self {
         Expression::Ellipsis
-    }
-}
-
-#[derive(Copy,Clone,Eq,Default,PartialEq,Ord,PartialOrd,Hash,Debug)]
-pub struct ScalarProduct {}
-
-impl<'a> From<ScalarProduct> for Expression<'a> {
-    fn from(_dots: ScalarProduct) -> Self {
-        Expression::ScalarProduct
     }
 }
 
@@ -97,9 +79,3 @@ impl<'a> From<Many0Wildcard<'a>> for Expression<'a> {
         Expression::Many0Wildcard(wildcard.0)
     }
 }
-
-// #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
-// pub enum Builtin<'a> {
-//     Ellipsis,
-//     Wildcard(Symbol<'a>),
-// }
