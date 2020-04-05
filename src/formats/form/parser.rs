@@ -2,6 +2,11 @@ use super::lexer::{Lexer, Token};
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::{self, Expression};
 
+pub fn parse<'a>(input: &'a [u8]) -> Result<Expression<'a>, SyntaxError> {
+    let mut parser = Parser::on(input);
+    parser.parse()
+}
+
 struct Parser<'a> {
     lexer: Lexer<'a>,
 }
