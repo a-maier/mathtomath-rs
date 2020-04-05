@@ -6,7 +6,7 @@ extern crate assert_matches;
 extern crate phf;
 
 mod expression;
-mod parsers;
+mod formats;
 
 fn main() {
     env_logger::init();
