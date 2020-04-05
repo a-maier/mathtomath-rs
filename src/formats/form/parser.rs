@@ -8,6 +8,7 @@ pub fn parse<'a>(input: &'a [u8]) -> Result<Expression<'a>, SyntaxError> {
     parser.parse()
 }
 
+#[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 struct Parser<'a> {
     lexer: Lexer<'a>,
 }
