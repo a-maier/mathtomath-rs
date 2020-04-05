@@ -1,10 +1,13 @@
-use super::error::*;
+use super::error::{SyntaxError, ErrorKind::*};
 use super::lexer::{Lexer, Token};
 use crate::expression::{self, Expression};
 
 struct Parser<'a> {
     lexer: Lexer<'a>,
 }
+
+const LEFT_TOKENS: &'static str =
+    "'+', '-' , '*', '/', '^', '.', '=', ',', ';', '?', '(', or '['";
 
 impl<'a> Parser<'a> {
     fn on(input: &'a [u8]) -> Self {
@@ -61,7 +64,7 @@ impl<'a> Parser<'a> {
                         let sym = expression::Symbol(name);
                         Ok(Many0Wildcard(sym))
                     } else {
-                        Err(SyntaxError::at(self.pos()))
+                        Err(SyntaxError::new(BadWildcardArgument("?"), self.pos()))
                     }
                 },
                 Token::LeftBracket => {
@@ -71,10 +74,13 @@ impl<'a> Parser<'a> {
                         *next = self.lexer.next().transpose()?;
                         Ok(arg)
                     } else {
-                        Err(SyntaxError::at(pos))
+                        Err(SyntaxError::new(Unmatched("("), pos))
                     }
                 },
-                _ => Err(SyntaxError::at(self.pos()))
+                _ => Err(SyntaxError::new(
+                    ExpectNull("a symbol, an integer number, '+', '-', '?', '(', or '...'"),
+                    self.pos()
+                ))
             }
         } else {
             Ok(Expression::Empty)
@@ -109,7 +115,7 @@ impl<'a> Parser<'a> {
                         let sym = expression::Symbol(name);
                         Ok(Wildcard(sym))
                     } else {
-                        Err(SyntaxError::at(pos))
+                        Err(SyntaxError::new(BadWildcardArgument("?"), pos))
                     }
                 },
                 Token::LeftBracket => {
@@ -117,7 +123,7 @@ impl<'a> Parser<'a> {
                         *next = self.lexer.next().transpose()?;
                         Ok(Function(Box::new((left, right))))
                     } else {
-                        Err(SyntaxError::at(pos))
+                        Err(SyntaxError::new(Unmatched("("), pos))
                     }
                 },
                 Token::LeftSquareBracket => {
@@ -125,13 +131,13 @@ impl<'a> Parser<'a> {
                         *next = self.lexer.next().transpose()?;
                         Ok(Coefficient(Box::new((left, right))))
                     } else {
-                        Err(SyntaxError::at(pos))
+                        Err(SyntaxError::new(Unmatched("["), pos))
                     }
                 },
-                _ => Err(SyntaxError::at(pos))
+                _ => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos))
             }
         } else {
-            Err(SyntaxError::at(pos))
+            Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), pos))
         }
     }
 
@@ -160,7 +166,6 @@ impl<'a> Parser<'a> {
                 LeftBracket => Ok(90),
                 LeftSquareBracket => Ok(100),
                 Wildcard => Ok(PREC_WILDCARD),
-                _ => Err(SyntaxError::at(self.pos()))
             }
         } else {
             Ok(0)

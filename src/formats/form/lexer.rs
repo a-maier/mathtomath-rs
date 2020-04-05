@@ -1,4 +1,4 @@
-use super::error::*;
+use super::error::{SyntaxError, ErrorKind::*};
 
 use std::str::from_utf8;
 
@@ -24,8 +24,8 @@ pub(crate) enum Token<'a> {
     RightBracket,
     LeftSquareBracket,
     RightSquareBracket,
-    LeftBrace,
-    RightBrace,
+    // LeftBrace,
+    // RightBrace,
     Plus,
     Minus,
     Times,
@@ -44,8 +44,8 @@ const STR_TO_TOKEN: phf::Map<&'static [u8], Token<'static>> = phf_map!{
     b")" => Token::RightBracket,
     b"[" => Token::LeftSquareBracket,
     b"]" => Token::RightSquareBracket,
-    b"{" => Token::LeftBrace,
-    b"}" => Token::RightBrace,
+    // b"{" => Token::LeftBrace,
+    // b"}" => Token::RightBrace,
     b"+" => Token::Plus,
     b"-" => Token::Minus,
     b"*" => Token::Times,
@@ -210,7 +210,7 @@ impl<'a> Iterator for Lexer<'a> {
             self.parse_success(token, remaining_input);
             return Some(Ok(Token::Integer(token)))
         }
-        let err = SyntaxError::at(self.pos());
+        let err = SyntaxError::new(NotAToken, self.pos());
         self.remaining_input = b"";
         debug!("{}", err);
         Some(Err(err))
