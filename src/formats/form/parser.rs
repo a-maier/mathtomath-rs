@@ -1,3 +1,4 @@
+use super::grammar::*;
 use super::lexer::{Lexer, Token};
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::{self, Expression};
@@ -151,31 +152,27 @@ impl<'a> Parser<'a> {
     }
 }
 
-const PREC_UPLUS: usize = 60;
-const PREC_UMINUS: usize = PREC_UPLUS;
-const PREC_WILDCARD: usize = 110;
-
 fn left_binding_power<'a>(token: Option<Token<'a>>) -> usize {
     debug!("look up left binding power of {:?}", token);
     use Token::*;
     if let Some(token) = token {
         match token {
-            Symbol(_) => 0,
-            Integer(_) => 0,
-            Ellipsis => 0,
-            RightBracket => 0,
-            RightSquareBracket => 0,
-            Semicolon => 10,
-            Comma => 20,
-            Equals => 30,
-            Plus => 40,
-            Minus => 40,
-            Times => 50,
-            Divide => 50,
-            Power => 70,
-            Dot => 80,
-            LeftBracket => 90,
-            LeftSquareBracket => 100,
+            Symbol(_) => PREC_SYMBOL,
+            Integer(_) => PREC_INTEGER,
+            Ellipsis => PREC_ELLIPSIS,
+            RightBracket => PREC_RIGHT_BRACKET,
+            RightSquareBracket => PREC_RIGHT_SQUARE_BRACKET,
+            Semicolon => PREC_SEMICOLON,
+            Comma => PREC_COMMA,
+            Equals => PREC_EQUALS,
+            Plus => PREC_PLUS,
+            Minus => PREC_MINUS,
+            Times => PREC_TIMES,
+            Divide => PREC_DIVIDE,
+            Power => PREC_POWER,
+            Dot => PREC_DOT,
+            LeftBracket => PREC_LEFT_BRACKET,
+            LeftSquareBracket => PREC_LEFT_SQUARE_BRACKET,
             Wildcard => PREC_WILDCARD,
         }
     } else {
