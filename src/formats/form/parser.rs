@@ -34,7 +34,7 @@ impl<'a> Parser<'a> {
         let mut token = *next;
         *next = self.lexer.next().transpose()?;
         let mut left = self.null(token, &mut next)?;
-        while right_binding_power < self.left_binding_power(*next)? {
+        while right_binding_power < left_binding_power(*next) {
             token = *next;
             *next = self.lexer.next().transpose()?;
             left = self.left(token, &mut next, left)?;
@@ -101,7 +101,7 @@ impl<'a> Parser<'a> {
         debug!("left called on token {:?}", token);
         use Expression::*;
         let pos = self.pos();
-        let right_binding_power = self.left_binding_power(token)?;
+        let right_binding_power = left_binding_power(token);
         let right = self.parse_with(next, right_binding_power)?;
         if let Some(t) = token {
             match t {
@@ -146,37 +146,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn left_binding_power(
-        &self,
-        token: Option<Token<'a>>
-    ) -> Result<usize, SyntaxError>  {
-        debug!("look up left binding power of {:?}", token);
-        use Token::*;
-        if let Some(token) = token {
-            match token {
-                Symbol(_) => Ok(0),
-                Integer(_) => Ok(0),
-                Ellipsis => Ok(0),
-                RightBracket => Ok(0),
-                RightSquareBracket => Ok(0),
-                Semicolon => Ok(10),
-                Comma => Ok(20),
-                Equals => Ok(30),
-                Plus => Ok(40),
-                Minus => Ok(40),
-                Times => Ok(50),
-                Divide => Ok(50),
-                Power => Ok(70),
-                Dot => Ok(80),
-                LeftBracket => Ok(90),
-                LeftSquareBracket => Ok(100),
-                Wildcard => Ok(PREC_WILDCARD),
-            }
-        } else {
-            Ok(0)
-        }
-    }
-
     fn pos(&self) -> usize {
         self.lexer.pos()
     }
@@ -185,6 +154,34 @@ impl<'a> Parser<'a> {
 const PREC_UPLUS: usize = 60;
 const PREC_UMINUS: usize = PREC_UPLUS;
 const PREC_WILDCARD: usize = 110;
+
+fn left_binding_power<'a>(token: Option<Token<'a>>) -> usize {
+    debug!("look up left binding power of {:?}", token);
+    use Token::*;
+    if let Some(token) = token {
+        match token {
+            Symbol(_) => 0,
+            Integer(_) => 0,
+            Ellipsis => 0,
+            RightBracket => 0,
+            RightSquareBracket => 0,
+            Semicolon => 10,
+            Comma => 20,
+            Equals => 30,
+            Plus => 40,
+            Minus => 40,
+            Times => 50,
+            Divide => 50,
+            Power => 70,
+            Dot => 80,
+            LeftBracket => 90,
+            LeftSquareBracket => 100,
+            Wildcard => PREC_WILDCARD,
+        }
+    } else {
+        0
+    }
+}
 
 #[cfg(test)]
 mod tests {
