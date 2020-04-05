@@ -25,8 +25,7 @@ impl<'a> Parser<'a> {
         let mut token = *next;
         *next = self.lexer.next().transpose()?;
         let mut left = self.null(token, &mut next)?;
-        while right_binding_power < self.left_binding_power(*next)?
-        {
+        while right_binding_power < self.left_binding_power(*next)? {
             token = *next;
             *next = self.lexer.next().transpose()?;
             left = self.left(token, &mut next, left)?;
