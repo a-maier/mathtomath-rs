@@ -45,6 +45,7 @@ impl<'a> Parser<'a> {
             match token {
                 Token::Symbol(name) => Ok(Symbol(name)),
                 Token::Integer(int) => Ok(Integer(int)),
+                Token::Ellipsis => Ok(Ellipsis),
                 Token::Plus => {
                     let arg = self.parse_with(next, PREC_UPLUS)?;
                     Ok(UPlus(Box::new(arg)))
@@ -143,6 +144,7 @@ impl<'a> Parser<'a> {
             match token {
                 Symbol(_) => Ok(0),
                 Integer(_) => Ok(0),
+                Ellipsis => Ok(0),
                 RightBracket => Ok(0),
                 RightSquareBracket => Ok(0),
                 Semicolon => Ok(10),
@@ -269,6 +271,11 @@ mod tests {
         let expr: &[u8] = b" a + 1 + b";
         let b: &[u8] = b"b";
         let res = Plus(Box::new((Plus(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
+        let mut parser = Parser::on(expr);
+        assert_eq!(parser.parse().unwrap(), res);
+
+        let expr: &[u8] = b"a,...,b";
+        let res = Sequence(Box::new((Sequence(Box::new((Symbol(a), Ellipsis))), Symbol(b))));
         let mut parser = Parser::on(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
