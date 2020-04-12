@@ -30,7 +30,7 @@ impl<'a> Parser<'a> {
     fn parse_with(
         &mut self,
         mut next: &mut Option<Token<'a>>,
-        right_binding_power: usize
+        right_binding_power: u32
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("parser called with rbp {}", right_binding_power);
         let mut token = *next;
@@ -153,7 +153,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-fn left_binding_power<'a>(token: Option<Token<'a>>) -> usize {
+fn left_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
     debug!("look up left binding power of {:?}", token);
     use Token::*;
     if let Some(token) = token {

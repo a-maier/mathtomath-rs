@@ -89,7 +89,7 @@ fn bracket_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
     Ok((rest, symbol))
 }
 
-fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
+pub(crate) fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
     alt((word_symbol, bracket_symbol))(i)
 }
 

@@ -72,6 +72,18 @@ fn parse<'a>(
     }
 }
 
+fn write_expression(
+    expr: Expression<'_>,
+    format: Format
+) -> () {
+    use Format::*;
+    info!("writing expression");
+    let expr = match format {
+        Form => formats::form::formatter::Formatter::new(&expr)
+    };
+    println!("{}", expr)
+}
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -83,6 +95,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let input = read_expression(&opt.file)?;
     let expression = parse(&input, opt.informat)?;
-    println!("{:#?}", expression);
+    write_expression(expression, opt.outformat);
     Ok(())
 }
