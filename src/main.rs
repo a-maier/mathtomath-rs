@@ -12,7 +12,7 @@ mod expression;
 mod formats;
 
 use expression::Expression;
-use error::SyntaxError;
+use error::{FormatError, SyntaxError};
 
 use std::{
     io::{self, Read},
@@ -75,13 +75,15 @@ fn parse<'a>(
 fn write_expression(
     expr: Expression<'_>,
     format: Format
-) -> () {
+) -> Result<(), FormatError> {
     use Format::*;
     info!("writing expression");
     let expr = match format {
-        Form => formats::form::formatter::Formatter::new(&expr)
+        Form => formats::form::formatter::Formatter::new(expr)
     };
-    println!("{}", expr)
+    let stdout = io::stdout();
+    let mut handle = stdout.lock();
+    expr.format(&mut handle)
 }
 
 
@@ -95,6 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let input = read_expression(&opt.file)?;
     let expression = parse(&input, opt.informat)?;
-    write_expression(expression, opt.outformat);
+    write_expression(expression, opt.outformat)?;
+    println!("");
     Ok(())
 }
