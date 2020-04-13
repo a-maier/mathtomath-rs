@@ -102,6 +102,10 @@ impl<'a> Parser<'a> {
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("left called on token {:?}", token);
         use Expression::*;
+        if token == Some(Token::LeftBracket) && *next == Some(Token::RightBracket) {
+            *next = self.lexer.next().transpose()?;
+            return Ok(Function(Box::new((left, Empty))))
+        }
         let pos = self.pos();
         let right_binding_power = left_binding_power(token);
         let right = self.parse_with(next, right_binding_power)?;
