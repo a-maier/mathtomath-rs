@@ -92,7 +92,7 @@ fn format(
         },
     };
     if with_paren {
-        write!(f, "(")
+        write!(f, ")")
     } else {
         Ok(())
     }
