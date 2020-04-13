@@ -66,7 +66,14 @@ fn format(
             write!(f, "{}", op)?;
             let right_arg = properties(right_arg)?;
             let right_arg_prec = right_arg.prec;
-            format(f, right_arg, right_arg_prec < prec)?;
+            // add bracket if operand on the right is of the same time
+            // e.g. a - (b - c)
+            let need_bracket = if let Infix(_, right_op, _) = right_arg.kind {
+                right_op == op || right_arg_prec < prec
+            } else {
+                right_arg_prec < prec
+            };
+            format(f, right_arg, need_bracket)?;
         },
         Circumfix(left, arg, right) => {
             let arg = properties(arg)?;
