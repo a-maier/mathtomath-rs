@@ -19,6 +19,8 @@ log = "0.4"
 nom = "5"
 phf = { version = "0.8", features = ["macros"] }
 structopt = "0.3"
+subslice = "0.2"
+regex = "1.3"
 
 [dev-dependencies]
 assert_matches = "1.3"

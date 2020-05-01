@@ -13,6 +13,7 @@ mod formats;
 
 use expression::Expression;
 use error::{FormatError, SyntaxError};
+use subslice::SubsliceExt;
 
 use std::{
     io::{self, Read},
@@ -23,9 +24,10 @@ use clap::arg_enum;
 use structopt::StructOpt;
 
 arg_enum! {
-    #[derive(Debug)]
+    #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
     enum Format {
         Form,
+        Mathematica,
     }
 }
 
@@ -68,7 +70,8 @@ fn parse<'a>(
     use Format::*;
     info!("parsing in format {:?}", format);
     match format {
-        Form => formats::form::parser::parse(input)
+        Form => formats::form::parser::parse(input),
+        _ => unimplemented!()
     }
 }
 
@@ -79,13 +82,13 @@ fn write_expression(
     use Format::*;
     info!("writing expression");
     let expr = match format {
-        Form => formats::form::formatter::Formatter::new(expr)
+        Form => formats::form::formatter::Formatter::new(expr),
+        _ => unimplemented!()
     };
     let stdout = io::stdout();
     let mut handle = stdout.lock();
     expr.format(&mut handle)
 }
-
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -96,7 +99,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Please enter an expression (finish with <Enter><Ctrl-d>):");
     }
     let input = read_expression(&opt.file)?;
-    let expression = parse(&input, opt.informat)?;
+    let transformed;
+    let expression = if opt.informat == Format::Mathematica
+        && input.find(b"\\[") != None
+    {
+        transformed = formats::mathematica::unicode::mathematica_to_utf8(&input)?;
+        parse(&transformed, opt.informat)?
+    } else {
+        parse(&input, opt.informat)?
+    };
     write_expression(expression, opt.outformat)?;
     println!("");
     Ok(())
