@@ -4,7 +4,7 @@ use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::{self, Expression};
 
 pub fn parse<'a>(input: &'a [u8]) -> Result<Expression<'a>, SyntaxError> {
-    let mut parser = Parser::on(input);
+    let mut parser = Parser::new(input);
     parser.parse()
 }
 
@@ -17,7 +17,7 @@ const LEFT_TOKENS: &'static str =
     "'+', '-' , '*', '/', '^', '.', '=', ',', ';', '?', '(', or '['";
 
 impl<'a> Parser<'a> {
-    fn on(input: &'a [u8]) -> Self {
+    fn new(input: &'a [u8]) -> Self {
         let lexer = Lexer::for_input(input);
         Parser{lexer}
     }
@@ -199,7 +199,7 @@ mod tests {
         use Expression::*;
 
         let expr = b"";
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), Empty);
     }
 
@@ -210,19 +210,19 @@ mod tests {
 
         let expr: &[u8] = "[αs]".as_bytes();
         let symbol = Symbol(expr);
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), symbol);
 
         let expr: &[u8] = " \n[αs]".as_bytes();
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), symbol);
 
         let expr: &[u8] = " [αs]  ".as_bytes();
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), symbol);
 
         let expr: &[u8] = b"$ascpn";
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), Symbol(&expr));
     }
 
@@ -233,11 +233,11 @@ mod tests {
 
         let expr: &[u8] = b"1294239933299328";
         let int = Integer(expr);
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), int);
 
         let expr: &[u8] = b"  \n\t  1294239933299328  ";
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), int);
     }
 
@@ -248,21 +248,21 @@ mod tests {
 
         let expr: &[u8] = b"+ 1294239933299328";
         let res = UPlus(Box::new(Integer(&expr[2..])));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b"-1294239933299328";
         let res = UMinus(Box::new(Integer(&expr[1..])));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b"?a";
         let res = Many0Wildcard(expression::Symbol(&expr[1..]));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b"?8";
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_matches!(parser.parse(), Err(_));
     }
 
@@ -275,33 +275,33 @@ mod tests {
         let a: &[u8] = b"a";
         let int: &[u8] = b"1";
         let res = Plus(Box::new((Symbol(a), Integer(int))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + 1 + b";
         let b: &[u8] = b"b";
         let res = Plus(Box::new((Plus(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b"a,...,b";
         let res = Sequence(Box::new((Sequence(Box::new((Symbol(a), Ellipsis))), Symbol(b))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + 1 - b";
         let res = Minus(Box::new((Plus(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a * 1 - b";
         let res = Minus(Box::new((Times(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a * 1 ^ b";
         let res = Times(Box::new((Symbol(a), Power(Box::new((Integer(int), Symbol(b)))))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
     }
 
@@ -316,17 +316,17 @@ mod tests {
 
         let expr: &[u8] = b" ( a + 1 )";
         let res = Plus(Box::new((Symbol(a), Integer(int))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + (1 - b)";
         let res = Plus(Box::new((Symbol(a), Minus(Box::new((Integer(int), Symbol(b)))))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" (a * 1) ^ b";
         let res = Power(Box::new((Times(Box::new((Symbol(a), Integer(int)))), Symbol(b))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
     }
 
@@ -341,12 +341,12 @@ mod tests {
 
         let expr: &[u8] = b"a[1]";
         let res = Coefficient(Box::new((Symbol(a), Integer(int))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" b^a[1]";
         let res = Power(Box::new((Symbol(b), Coefficient(Box::new((Symbol(a), Integer(int)))))));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
     }
@@ -363,12 +363,12 @@ mod tests {
         let fun = Function(Box::new((Symbol(a), Integer(int))));
         let expr: &[u8] = b"a(1)";
         let res = fun.clone().into();
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" b^a(1)";
         let res = Power(Box::new((Symbol(b), fun.into())));
-        let mut parser = Parser::on(expr);
+        let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
     }

@@ -72,7 +72,7 @@ fn builtin(i: &str) -> Option<(Token<'static>, usize)>  {
     for & token_str_len in boundaries.iter().rev() {
         trace!("looking for token with string length {}", token_str_len);
         if let Some(val) = STR_TO_TOKEN.get(&i[..token_str_len]) {
-            return Some((*val, token_str_len))
+            return Some((Token::Static(*val), token_str_len))
         }
     }
     None
@@ -157,6 +157,7 @@ mod tests {
         log_init();
 
         use Token::*;
+        use StaticToken::*;
 
             let expr =
             r#" + 35 - "iπs\"[a]f]"_.q / den[4*a^-3, $a[[1]]] + ln[x1,x6];
@@ -165,63 +166,63 @@ mod tests {
 foo = 〈as^.238〉;
 "#;
         let mut p = Lexer::for_input(&expr);
-        assert_eq!(p.next(), Some(Ok(Plus)));
+        assert_eq!(p.next(), Some(Ok(Static(Plus))));
         let slice: &[u8] = b"35";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Subtract)));
+        assert_eq!(p.next(), Some(Ok(Static(Subtract))));
         let slice: &[u8] = r#"iπs\"[a]f]"#.as_bytes();
         assert_eq!(p.next(), Some(Ok(String(slice))));
-        assert_eq!(p.next(), Some(Ok(Blank)));
-        assert_eq!(p.next(), Some(Ok(Dot)));
+        assert_eq!(p.next(), Some(Ok(Static(Blank))));
+        assert_eq!(p.next(), Some(Ok(Static(Dot))));
         let slice: &[u8] = b"q";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Divide)));
+        assert_eq!(p.next(), Some(Ok(Static(Divide))));
         let slice: &[u8] = b"den";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(LeftSquareBracket)));
+        assert_eq!(p.next(), Some(Ok(Static(LeftSquareBracket))));
         let slice: &[u8] = b"4";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Times)));
+        assert_eq!(p.next(), Some(Ok(Static(Times))));
         let slice: &[u8] = b"a";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Power)));
-        assert_eq!(p.next(), Some(Ok(Subtract)));
+        assert_eq!(p.next(), Some(Ok(Static(Power))));
+        assert_eq!(p.next(), Some(Ok(Static(Subtract))));
         let slice: &[u8] = b"3";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Comma)));
+        assert_eq!(p.next(), Some(Ok(Static(Comma))));
         let slice: &[u8] = b"$a";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(LeftPart)));
+        assert_eq!(p.next(), Some(Ok(Static(LeftPart))));
         let slice: &[u8] = b"1";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(RightPart)));
-        assert_eq!(p.next(), Some(Ok(RightSquareBracket)));
-        assert_eq!(p.next(), Some(Ok(Plus)));
+        assert_eq!(p.next(), Some(Ok(Static(RightPart))));
+        assert_eq!(p.next(), Some(Ok(Static(RightSquareBracket))));
+        assert_eq!(p.next(), Some(Ok(Static(Plus))));
         let slice: &[u8] = b"ln";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(LeftSquareBracket)));
+        assert_eq!(p.next(), Some(Ok(Static(LeftSquareBracket))));
         let slice: &[u8] = b"x1";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Comma)));
+        assert_eq!(p.next(), Some(Ok(Static(Comma))));
         let slice: &[u8] = b"x6";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(RightSquareBracket)));
-        assert_eq!(p.next(), Some(Ok(CompoundExpression)));
+        assert_eq!(p.next(), Some(Ok(Static(RightSquareBracket))));
+        assert_eq!(p.next(), Some(Ok(Static(CompoundExpression))));
         let slice: &[u8] = b"foo";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Set)));
-        assert_eq!(p.next(), Some(Ok(LeftAngleBracket)));
+        assert_eq!(p.next(), Some(Ok(Static(Set))));
+        assert_eq!(p.next(), Some(Ok(Static(LeftAngleBracket))));
         let slice: &[u8] = b"as";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Power)));
+        assert_eq!(p.next(), Some(Ok(Static(Power))));
         let slice: &[u8] = b".238";
         assert_eq!(p.next(), Some(Ok(Real(slice))));
-        assert_eq!(p.next(), Some(Ok(RightAngleBracket)));
-        assert_eq!(p.next(), Some(Ok(CompoundExpression)));
+        assert_eq!(p.next(), Some(Ok(Static(RightAngleBracket))));
+        assert_eq!(p.next(), Some(Ok(Static(CompoundExpression))));
         assert_eq!(p.next(), None);
 
         let mut p = Lexer::for_input("+ ");
-        assert_eq!(p.next(), Some(Ok(Plus)));
+        assert_eq!(p.next(), Some(Ok(Static(Plus))));
         assert_eq!(p.next(), None);
     }
 }

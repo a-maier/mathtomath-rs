@@ -1,6 +1,10 @@
 #[macro_use]
 extern crate log;
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate maplit;
+#[macro_use]
 extern crate phf;
 
 #[cfg(test)]
@@ -9,6 +13,7 @@ extern crate assert_matches;
 
 mod error;
 mod expression;
+mod arity;
 mod formats;
 
 use expression::Expression;
@@ -71,7 +76,10 @@ fn parse<'a>(
     info!("parsing in format {:?}", format);
     match format {
         Form => formats::form::parser::parse(input),
-        _ => unimplemented!()
+        Mathematica => {
+            let input = std::str::from_utf8(input)?;
+            formats::mathematica::parser::parse(input)
+        },
     }
 }
 

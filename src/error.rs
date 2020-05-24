@@ -1,12 +1,12 @@
-use std::{error, io, fmt};
+use std::{str, error, io, fmt};
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy,Clone,Eq,PartialEq,Debug)]
 pub struct SyntaxError {
     kind: ErrorKind,
     pos: usize,
 }
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy,Clone,Eq,PartialEq,Debug)]
 pub enum ErrorKind {
     BadWildcardArgument(&'static str),
     EarlyEOF(&'static str),
@@ -14,6 +14,7 @@ pub enum ErrorKind {
     ExpectNull(&'static str),
     NotAToken,
     Unmatched(&'static str),
+    Utf8Error(str::Utf8Error),
 }
 
 impl error::Error for SyntaxError {
@@ -32,6 +33,14 @@ impl SyntaxError {
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "syntax error at position {}", self.pos())
+    }
+}
+
+impl std::convert::From<str::Utf8Error> for SyntaxError {
+    fn from(err: str::Utf8Error) -> Self {
+        let pos = err.valid_up_to();
+        let kind = ErrorKind::Utf8Error(err);
+        SyntaxError::new(kind, pos)
     }
 }
 
