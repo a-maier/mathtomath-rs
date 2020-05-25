@@ -213,9 +213,9 @@ fn postfix_op_to_expr<'a>(
     use Expression::*;
     let arg = Box::new(arg);
     match op {
-        // StaticToken::Blank => Wildcard(arg),
-        // StaticToken::BlankNullSequence => Many0Wildcard(arg),
-        // StaticToken::BlankSequence => Wildcard(arg),
+        StaticToken::Blank => Wildcard(arg),
+        StaticToken::BlankNullSequence => Many0Wildcard(arg),
+        StaticToken::BlankSequence => ManyWildcard(arg),
         StaticToken::Conjugate => Conjugate(arg),
         StaticToken::ConjugateTranspose => ConjugateTranspose(arg),
         StaticToken::Decrement => PostfixDecrement(arg),

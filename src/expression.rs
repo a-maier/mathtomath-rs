@@ -9,8 +9,9 @@ pub enum Expression<'a> {
     Real(&'a [u8]),
     Symbol(&'a [u8]),
     String(&'a [u8]),
-    Wildcard(Symbol<'a>),
-    Many0Wildcard(Symbol<'a>),
+    Wildcard(Box<Expression<'a>>),
+    ManyWildcard(Box<Expression<'a>>),
+    Many0Wildcard(Box<Expression<'a>>),
     UPlus(Box<Expression<'a>>),
     UMinus(Box<Expression<'a>>),
     Plus(Args<'a>),
@@ -337,23 +338,5 @@ pub struct Ellipsis {}
 impl<'a> From<Ellipsis> for Expression<'a> {
     fn from(_dots: Ellipsis) -> Self {
         Expression::Ellipsis
-    }
-}
-
-#[derive(Copy,Clone,Eq,Default,PartialEq,Ord,PartialOrd,Hash,Debug)]
-pub struct Wildcard<'a>(pub Symbol<'a>);
-
-impl<'a> From<Wildcard<'a>> for Expression<'a> {
-    fn from(wildcard: Wildcard<'a>) -> Self {
-        Expression::Wildcard(wildcard.0)
-    }
-}
-
-#[derive(Copy,Clone,Eq,Default,PartialEq,Ord,PartialOrd,Hash,Debug)]
-pub struct Many0Wildcard<'a>(pub Symbol<'a>);
-
-impl<'a> From<Many0Wildcard<'a>> for Expression<'a> {
-    fn from(wildcard: Many0Wildcard<'a>) -> Self {
-        Expression::Many0Wildcard(wildcard.0)
     }
 }

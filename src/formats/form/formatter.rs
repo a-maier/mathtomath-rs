@@ -122,10 +122,8 @@ fn properties(
         Expression::Integer(i) => (PREC_ATOM, Integer(i)),
         Expression::Symbol(s) => (PREC_ATOM, Symbol(s)),
         Expression::Ellipsis => (PREC_ATOM, Nullary(b"...")),
-        Expression::Wildcard(expression::Symbol(sym)) =>
-            (PREC_ATOM, Postfix(Expression::Symbol(sym), b"?")),
-        Expression::Many0Wildcard(expression::Symbol(sym)) =>
-            (PREC_ATOM, Prefix(b"?", Expression::Symbol(sym))),
+        Expression::Wildcard(arg) => (PREC_ATOM, Postfix(*arg, b"?")),
+        Expression::Many0Wildcard(arg) => (PREC_ATOM, Prefix(b"?", *arg)),
         Expression::UPlus(arg)=> (PREC_UPLUS, Prefix(b"+",*arg)),
         Expression::UMinus(arg) => (PREC_UMINUS, Prefix(b"-",*arg)),
         Expression::Plus(args) => {

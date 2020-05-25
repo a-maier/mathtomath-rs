@@ -67,12 +67,7 @@ impl<'a> Parser<'a> {
                 },
                 Token::Wildcard => {
                     let arg = self.parse_with(next, PREC_WILDCARD)?;
-                    if let Symbol(name) = arg {
-                        let sym = expression::Symbol(name);
-                        Ok(Many0Wildcard(sym))
-                    } else {
-                        Err(SyntaxError::new(BadWildcardArgument("?"), self.pos()))
-                    }
+                    Ok(Many0Wildcard(Box::new(arg)))
                 },
                 Token::LeftBracket => {
                     let pos = self.pos();
@@ -121,14 +116,7 @@ impl<'a> Parser<'a> {
                 Token::Equals => Ok(Equals(Box::new((left, right)))),
                 Token::Power => Ok(Power(Box::new((left, right)))),
                 Token::Dot => Ok(Dot(Box::new((left, right)))),
-                Token::Wildcard => {
-                    if let Symbol(name) = left {
-                        let sym = expression::Symbol(name);
-                        Ok(Wildcard(sym))
-                    } else {
-                        Err(SyntaxError::new(BadWildcardArgument("?"), pos))
-                    }
-                },
+                Token::Wildcard => Ok(Wildcard(Box::new(left))),
                 Token::LeftBracket => {
                     if *next == Some(Token::RightBracket) {
                         *next = self.lexer.next().transpose()?;

@@ -8,7 +8,6 @@ pub struct SyntaxError {
 
 #[derive(Copy,Clone,Eq,PartialEq,Debug)]
 pub enum ErrorKind {
-    BadWildcardArgument(&'static str),
     EarlyEOF(&'static str),
     ExpectLeft(&'static str),
     ExpectNull(&'static str),
