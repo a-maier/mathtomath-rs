@@ -17,7 +17,7 @@ mod arity;
 mod formats;
 
 use expression::Expression;
-use error::{FormatError, SyntaxError};
+use error::SyntaxError;
 use subslice::SubsliceExt;
 
 use std::{
@@ -86,7 +86,7 @@ fn parse<'a>(
 fn write_expression(
     expr: Expression<'_>,
     format: Format
-) -> Result<(), FormatError> {
+) -> Result<(), std::io::Error> {
     use Format::*;
     info!("writing expression");
     let expr = match format {

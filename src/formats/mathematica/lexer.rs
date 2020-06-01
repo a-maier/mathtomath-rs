@@ -1,6 +1,5 @@
 use crate::error::{SyntaxError, ErrorKind::*};
 use super::tokens::*;
-use std::cmp;
 
 use nom::{
     IResult,
