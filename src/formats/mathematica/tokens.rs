@@ -681,6 +681,8 @@ lazy_static! {
         StaticToken::BlankNullSequence => PREC_BLANK_NULL_SEQUENCE,
         StaticToken::BlankSequence => PREC_BLANK_SEQUENCE,
         StaticToken::LeftBracket => PREC_LEFT_BRACKET,
+        StaticToken::LeftPart => PREC_LEFT_PART,
+        StaticToken::RightPart => PREC_RIGHT_PART,
         StaticToken::RightBracket => PREC_RIGHT_BRACKET,
         StaticToken::Cap => PREC_CAP,
         StaticToken::LeftCeiling => PREC_LEFT_CEILING,
