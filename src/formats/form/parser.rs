@@ -251,9 +251,6 @@ mod tests {
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
-        let expr: &[u8] = b"?8";
-        let mut parser = Parser::new(expr);
-        assert_matches!(parser.parse(), Err(_));
     }
 
     #[test]
@@ -277,7 +274,7 @@ mod tests {
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b"a,...,b";
-        let res = Binary(Sequence, Box::new((Binary(Sequence, Box::new((Nullary(Symbol(a)), Ellipsis))), Nullary(Symbol(b)))));
+        let res = Binary(Sequence, Box::new((Binary(Sequence, Box::new((Nullary(Symbol(a)), Nullary(Ellipsis)))), Nullary(Symbol(b)))));
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
