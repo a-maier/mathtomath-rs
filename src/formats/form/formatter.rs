@@ -36,6 +36,7 @@ fn format<W: io::Write>(
             if is_symbol(sym) {
                 w.write_all(sym)?;
             } else {
+                warn!("{:?} is not a legal symbol name", std::str::from_utf8(sym));
                 w.write_all(b"[")?;
                 w.write_all(sym)?;
                 w.write_all(b"]")?;
@@ -145,6 +146,8 @@ fn properties(
             NullaryOp::Integer(i) => (PREC_ATOM, Integer(i)),
             NullaryOp::Symbol(s) => (PREC_ATOM, Symbol(s)),
             NullaryOp::Ellipsis => (PREC_ATOM, Nullary(b"...")),
+            NullaryOp::Pi => (PREC_ATOM, Nullary(b"pi_")),
+            NullaryOp::I => (PREC_ATOM, Nullary(b"i_")),
             unknown => (PREC_ATOM, UnknownNullary(unknown)),
         },
         Unary(unary, arg) => match unary {

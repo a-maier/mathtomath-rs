@@ -801,6 +801,7 @@ lazy_static! {
         StaticToken::PatternTest => PREC_PATTERN_TEST,
         StaticToken::Piecewise => PREC_PIECEWISE,
         StaticToken::Plus => PREC_PLUS,
+        StaticToken::Subtract => PREC_MINUS,
         StaticToken::PlusMinus => PREC_PLUS_MINUS,
         StaticToken::Postfix => PREC_POSTFIX,
         StaticToken::Power => PREC_POWER,

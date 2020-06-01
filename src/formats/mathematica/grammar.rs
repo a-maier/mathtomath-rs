@@ -95,8 +95,8 @@ pub const PREC_PART: u32 = 90;
 pub const PREC_PATTERN_TEST: u32 = 91;
 pub const PREC_PIECEWISE: u32 = 99;
 pub const PREC_PLUS: u32 = 53;
-pub const PREC_PRE_DECREMENT: u32 = 88;
 pub const PREC_PRE_INCREMENT: u32 = 88;
+pub const PREC_PRE_DECREMENT: u32 = 88;
 pub const PREC_PRODUCT: u32 = 60;
 pub const PREC_PUT: u32 = 22;
 pub const PREC_PUT_APPEND: u32 = 22;
@@ -193,6 +193,7 @@ pub const PREC_ATOM: u32 = std::u32::MAX;
 // guesses
 pub const PREC_SEQUENCE: u32 = 10; // lower than COMPOUND_EXPRESSION (';')
 pub const PREC_POSTFIX: u32 = 25; // higher than Therefore, lower than Colon
+pub const PREC_MINUS: u32 = PREC_PLUS;
 
 pub fn is_symbol(i: &[u8]) -> bool {
     if let Ok(i) = str::from_utf8(i) {

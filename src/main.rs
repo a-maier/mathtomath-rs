@@ -89,13 +89,12 @@ fn write_expression(
 ) -> Result<(), std::io::Error> {
     use Format::*;
     info!("writing expression");
-    let expr = match format {
-        Form => formats::form::formatter::Formatter::new(expr),
-        _ => unimplemented!()
-    };
     let stdout = io::stdout();
     let mut handle = stdout.lock();
-    expr.format(&mut handle)
+    match format {
+        Form => formats::form::formatter::Formatter::new(expr).format(&mut handle),
+        Mathematica => formats::mathematica::formatter::Formatter::new(expr).format(&mut handle)
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
