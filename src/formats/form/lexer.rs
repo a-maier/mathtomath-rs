@@ -19,6 +19,11 @@ use nom::{
 pub(crate) enum Token<'a> {
     Symbol(&'a [u8]),
     Integer(&'a [u8]),
+    Static(StaticToken),
+}
+
+#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+pub(crate) enum StaticToken {
     Ellipsis,
     LeftBracket,
     RightBracket,
@@ -38,24 +43,24 @@ pub(crate) enum Token<'a> {
     Semicolon,
 }
 
-const STR_TO_TOKEN: phf::Map<&'static [u8], Token<'static>> = phf_map!{
-    b"..." => Token::Ellipsis,
-    b"(" => Token::LeftBracket,
-    b")" => Token::RightBracket,
-    b"[" => Token::LeftSquareBracket,
-    b"]" => Token::RightSquareBracket,
-    // b"{" => Token::LeftBrace,
-    // b"}" => Token::RightBrace,
-    b"+" => Token::Plus,
-    b"-" => Token::Minus,
-    b"*" => Token::Times,
-    b"/" => Token::Divide,
-    b"^" => Token::Power,
-    b"." => Token::Dot,
-    b"=" => Token::Equals,
-    b"?" => Token::Wildcard,
-    b"," => Token::Comma,
-    b";" => Token::Semicolon,
+const STR_TO_TOKEN: phf::Map<&'static [u8], StaticToken> = phf_map!{
+    b"..." => StaticToken::Ellipsis,
+    b"(" => StaticToken::LeftBracket,
+    b")" => StaticToken::RightBracket,
+    b"[" => StaticToken::LeftSquareBracket,
+    b"]" => StaticToken::RightSquareBracket,
+    // b"{" => StaticToken::LeftBrace,
+    // b"}" => StaticToken::RightBrace,
+    b"+" => StaticToken::Plus,
+    b"-" => StaticToken::Minus,
+    b"*" => StaticToken::Times,
+    b"/" => StaticToken::Divide,
+    b"^" => StaticToken::Power,
+    b"." => StaticToken::Dot,
+    b"=" => StaticToken::Equals,
+    b"?" => StaticToken::Wildcard,
+    b"," => StaticToken::Comma,
+    b";" => StaticToken::Semicolon,
 };
 
 fn integer(i: &[u8]) -> IResult<&[u8], &[u8]> {
@@ -180,6 +185,8 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Token<'a>, SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        use Token::*;
+        use StaticToken::*;
         trace!("lexer called on {}", from_utf8(self.remaining_input).unwrap());
         let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
         if !ws.is_empty() {
@@ -194,21 +201,21 @@ impl<'a> Iterator for Lexer<'a> {
             self.last_token_was_a_symbol = false;
             let (token, remaining_input) = self.remaining_input.split_at(1);
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::LeftSquareBracket))
+            return Some(Ok(Static(LeftSquareBracket)))
         }
         if let Ok((remaining_input, token)) = symbol(self.remaining_input) {
             self.parse_success(token, remaining_input);
             self.last_token_was_a_symbol = true;
-            return Some(Ok(Token::Symbol(token)))
+            return Some(Ok(Symbol(token)))
         }
         self.last_token_was_a_symbol = false;
         if let Ok((remaining_input, token)) = operator_or_bracket(remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(STR_TO_TOKEN[token]))
+            return Some(Ok(Static(STR_TO_TOKEN[token])))
         }
         if let Ok((remaining_input, token)) = integer(remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::Integer(token)))
+            return Some(Ok(Integer(token)))
         }
         let err = SyntaxError::new(NotAToken, self.pos());
         self.remaining_input = b"";
@@ -230,6 +237,7 @@ mod tests {
         log_init();
 
         use Token::*;
+        use StaticToken::*;
         let expr =
             "* this is a comment
  + 35 - [iπs[a]f]?.q / den(4*a^-3, $a) + ln_(x1,...,x6);
@@ -240,60 +248,60 @@ foo = [bar][as^3];
 #include- << parse fails here
 ".as_bytes();
         let mut p = Lexer::for_input(&expr);
-        assert_eq!(p.next(), Some(Ok(Plus)));
+        assert_eq!(p.next(), Some(Ok(Static(Plus))));
         let slice: &[u8] = b"35";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Minus)));
+        assert_eq!(p.next(), Some(Ok(Static(Minus))));
         let slice: &[u8] = "[iπs[a]f]".as_bytes();
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Wildcard)));
-        assert_eq!(p.next(), Some(Ok(Dot)));
+        assert_eq!(p.next(), Some(Ok(Static(Wildcard))));
+        assert_eq!(p.next(), Some(Ok(Static(Dot))));
         let slice: &[u8] = b"q";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Divide)));
+        assert_eq!(p.next(), Some(Ok(Static(Divide))));
         let slice: &[u8] = b"den";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(LeftBracket)));
+        assert_eq!(p.next(), Some(Ok(Static(LeftBracket))));
         let slice: &[u8] = b"4";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Times)));
+        assert_eq!(p.next(), Some(Ok(Static(Times))));
         let slice: &[u8] = b"a";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Power)));
-        assert_eq!(p.next(), Some(Ok(Minus)));
+        assert_eq!(p.next(), Some(Ok(Static(Power))));
+        assert_eq!(p.next(), Some(Ok(Static(Minus))));
         let slice: &[u8] = b"3";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Comma)));
+        assert_eq!(p.next(), Some(Ok(Static(Comma))));
         let slice: &[u8] = b"$a";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(RightBracket)));
-        assert_eq!(p.next(), Some(Ok(Plus)));
+        assert_eq!(p.next(), Some(Ok(Static(RightBracket))));
+        assert_eq!(p.next(), Some(Ok(Static(Plus))));
         let slice: &[u8] = b"ln_";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(LeftBracket)));
+        assert_eq!(p.next(), Some(Ok(Static(LeftBracket))));
         let slice: &[u8] = b"x1";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Comma)));
-        assert_eq!(p.next(), Some(Ok(Ellipsis)));
-        assert_eq!(p.next(), Some(Ok(Comma)));
+        assert_eq!(p.next(), Some(Ok(Static(Comma))));
+        assert_eq!(p.next(), Some(Ok(Static(Ellipsis))));
+        assert_eq!(p.next(), Some(Ok(Static(Comma))));
         let slice: &[u8] = b"x6";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(RightBracket)));
-        assert_eq!(p.next(), Some(Ok(Semicolon)));
+        assert_eq!(p.next(), Some(Ok(Static(RightBracket))));
+        assert_eq!(p.next(), Some(Ok(Static(Semicolon))));
         let slice: &[u8] = b"foo";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Equals)));
+        assert_eq!(p.next(), Some(Ok(Static(Equals))));
         let slice: &[u8] = b"[bar]";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(LeftSquareBracket)));
+        assert_eq!(p.next(), Some(Ok(Static(LeftSquareBracket))));
         let slice: &[u8] = b"as";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Power)));
+        assert_eq!(p.next(), Some(Ok(Static(Power))));
         let slice: &[u8] = b"3";
         assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(RightSquareBracket)));
-        assert_eq!(p.next(), Some(Ok(Semicolon)));
-        assert_eq!(p.next(), Some(Ok(Times)));
+        assert_eq!(p.next(), Some(Ok(Static(RightSquareBracket))));
+        assert_eq!(p.next(), Some(Ok(Static(Semicolon))));
+        assert_eq!(p.next(), Some(Ok(Static(Times))));
         let slice: &[u8] = b"[this is\n*not a comment]";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
         assert_matches!(p.next(), Some(Err(_)));
@@ -302,7 +310,7 @@ foo = [bar][as^3];
 
         let expr: &[u8] = b"+ ";
         let mut p = Lexer::for_input(&expr);
-        assert_eq!(p.next(), Some(Ok(Plus)));
+        assert_eq!(p.next(), Some(Ok(Static(Plus))));
         assert_eq!(p.next(), None);
     }
 }

@@ -1,6 +1,6 @@
 use super::grammar::*;
 use crate::error::FormatError;
-use crate::expression::{self, Expression};
+use crate::expression::*;
 
 use std::io;
 
@@ -116,61 +116,40 @@ enum ExpressionKind<'a> {
 fn properties(
     expression: Expression<'_>
 ) -> std::result::Result<ExpressionProperties<'_>, FormatError> {
+    use Expression::{Unary, Binary};
     use ExpressionKind::*;
     let (prec, kind) = match expression {
-        Expression::Empty => (PREC_ATOM, Empty),
-        Expression::Integer(i) => (PREC_ATOM, Integer(i)),
-        Expression::Symbol(s) => (PREC_ATOM, Symbol(s)),
-        Expression::Ellipsis => (PREC_ATOM, Nullary(b"...")),
-        Expression::Wildcard(arg) => (PREC_ATOM, Postfix(*arg, b"?")),
-        Expression::Many0Wildcard(arg) => (PREC_ATOM, Prefix(b"?", *arg)),
-        Expression::UPlus(arg)=> (PREC_UPLUS, Prefix(b"+",*arg)),
-        Expression::UMinus(arg) => (PREC_UMINUS, Prefix(b"-",*arg)),
-        Expression::Plus(args) => {
+        Expression::Nullary(nullary) => match nullary {
+            NullaryOp::Empty => (PREC_ATOM, Empty),
+            NullaryOp::Integer(i) => (PREC_ATOM, Integer(i)),
+            NullaryOp::Symbol(s) => (PREC_ATOM, Symbol(s)),
+            NullaryOp::Ellipsis => (PREC_ATOM, Nullary(b"...")),
+            _ => return Err(FormatError::InvalidExpression)
+        },
+        Unary(unary, arg) => match unary {
+            UnaryOp::Wildcard => (PREC_ATOM, Postfix(*arg, b"?")),
+            UnaryOp::Many0Wildcard => (PREC_ATOM, Prefix(b"?", *arg)),
+            UnaryOp::UPlus => (PREC_UPLUS, Prefix(b"+",*arg)),
+            UnaryOp::UMinus => (PREC_UMINUS, Prefix(b"-",*arg)),
+            _ => return Err(FormatError::InvalidExpression)
+        },
+        Binary(binary, args) => {
             let (left, right) = *args;
-            (PREC_PLUS, Infix(left, b"+", right))
-        },
-        Expression::Minus(args) => {
-            let (left, right) = *args;
-            (PREC_MINUS, Infix(left, b"-", right))
-        },
-        Expression::Times(args) => {
-            let (left, right) = *args;
-            (PREC_TIMES, Infix(left, b"*", right))
-        },
-        Expression::Divide(args) => {
-            let (left, right) = *args;
-            (PREC_DIVIDE, Infix(left, b"/", right))
-        },
-        Expression::Compound(args) => {
-            let (left, right) = *args;
-            (PREC_SEMICOLON, Infix(left, b";", right))
-        },
-        Expression::Sequence(args) => {
-            let (left, right) = *args;
-            (PREC_COMMA, Infix(left, b",", right))
-        },
-        Expression::Equals(args) => {
-            let (left, right) = *args;
-            (PREC_EQUALS, Infix(left, b"=", right))
-        },
-        Expression::Dot(args) => {
-            let (left, right) = *args;
-            (PREC_DOT, Infix(left, b".", right))
-        },
-        Expression::Power(args) => {
-            let (left, right) = *args;
-            (PREC_POWER, Infix(left, b"^", right))
-        },
-        Expression::Coefficient(args) => {
-            let (head, arg) = *args;
-            (PREC_LEFT_SQUARE_BRACKET, Function(head, b"[", arg, b"]"))
-        },
-        Expression::Function(args) => {
-            let (head, arg) = *args;
-            (PREC_LEFT_BRACKET, Function(head, b"(", arg, b")"))
-        },
-        _ => return Err(FormatError::InvalidExpression)
+            match binary {
+                BinaryOp::Plus => (PREC_PLUS, Infix(left, b"+", right)),
+                BinaryOp::Minus => (PREC_MINUS, Infix(left, b"-", right)),
+                BinaryOp::Times => (PREC_TIMES, Infix(left, b"*", right)),
+                BinaryOp::Divide => (PREC_DIVIDE, Infix(left, b"/", right)),
+                BinaryOp::Compound => (PREC_SEMICOLON, Infix(left, b";", right)),
+                BinaryOp::Sequence => (PREC_COMMA, Infix(left, b",", right)),
+                BinaryOp::Equals => (PREC_EQUALS, Infix(left, b"=", right)),
+                BinaryOp::Dot => (PREC_DOT, Infix(left, b".", right)),
+                BinaryOp::Power => (PREC_POWER, Infix(left, b"^", right)),
+                BinaryOp::Coefficient => (PREC_LEFT_SQUARE_BRACKET, Function(left, b"[", right, b"]")),
+                BinaryOp::Function => (PREC_LEFT_BRACKET, Function(left, b"(", right, b")")),
+                _ => return Err(FormatError::InvalidExpression)
+            }
+        }
     };
     Ok(ExpressionProperties{prec, kind: kind})
 }
