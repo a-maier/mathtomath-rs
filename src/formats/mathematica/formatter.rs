@@ -173,6 +173,7 @@ fn properties(
             NullaryOp::ASinh => (PREC_ATOM, Nullary("ArcSinh")),
             NullaryOp::ACosh => (PREC_ATOM, Nullary("ArcCosh")),
             NullaryOp::ATanh => (PREC_ATOM, Nullary("ArcTanh")),
+            NullaryOp::Sqrt => (PREC_ATOM, Nullary("Sqrt")),
             unknown => (PREC_ATOM, UnknownNullary(unknown)),
         },
         Unary(unary, arg) => match unary {
@@ -197,10 +198,6 @@ fn properties(
             UnaryOp::UPlusMinus => (PREC_UPLUS_MINUS, Prefix("±", *arg)),
             // Slot => (PREC_SLOT, fix(*arg)),
             // SlotSequence => (PREC_SLOT_SEQUENCE, fix(*arg)),
-            UnaryOp::Sqrt => (PREC_SQRT, Function(
-                Expression::Nullary(NullaryOp::Symbol(b"Sqrt")),
-                "[", *arg, "]"
-            )),
             UnaryOp::Transpose => (PREC_SQRT, Function(
                 Expression::Nullary(NullaryOp::Symbol(b"Transpose")),
                 "[", *arg, "]"

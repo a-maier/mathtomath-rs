@@ -39,6 +39,7 @@ pub enum NullaryOp<'a> {
     ASinh,
     ACosh,
     ATanh,
+    Sqrt,
 }
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
@@ -65,7 +66,6 @@ pub enum UnaryOp {
     UPlusMinus,
     Slot,
     SlotSequence,
-    Sqrt,
     Square,
     Transpose,
     Conjugate,

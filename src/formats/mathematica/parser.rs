@@ -187,10 +187,16 @@ fn prefix_op_to_expr<'a>(
     op: StaticToken,
     arg: Expression<'a>
 ) -> Expression<'a> {
-    let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
-        "Internal error: prefix operator to expression"
-    );
-    Expression::Unary(op, Box::new(arg))
+    if op == StaticToken::Sqrt {
+        Expression::Binary(BinaryOp::Function, Box::new((
+            Expression::Nullary(NullaryOp::Sqrt), arg
+        )))
+    } else {
+        let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
+            "Internal error: prefix operator to expression"
+        );
+        Expression::Unary(op, Box::new(arg))
+    }
 }
 
 fn postfix_op_to_expr<'a>(

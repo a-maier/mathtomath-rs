@@ -105,6 +105,7 @@ lazy_static! {
         StaticToken::ASinh => Arity::Nullary,
         StaticToken::ACosh => Arity::Nullary,
         StaticToken::ATanh => Arity::Nullary,
+        StaticToken::Sqrt => Arity::Nullary,
 
         StaticToken::Plus => Arity::Unary,
         StaticToken::Minus => Arity::Unary,
@@ -183,5 +184,6 @@ lazy_static! {
         StaticToken::ASinh => NullaryOp::ASinh,
         StaticToken::ACosh => NullaryOp::ACosh,
         StaticToken::ATanh => NullaryOp::ATanh,
+        StaticToken::Sqrt => NullaryOp::Sqrt,
     };
 }

@@ -697,6 +697,7 @@ pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static str, StaticToken> = phf_map!{
     "ArcSinh" => StaticToken::ArcSinh,
     "ArcCosh" => StaticToken::ArcCosh,
     "ArcTanh" => StaticToken::ArcTanh,
+    "Sqrt" => StaticToken::Sqrt,
 };
 
 lazy_static! {
@@ -857,7 +858,7 @@ lazy_static! {
         StaticToken::SlotSequence => PREC_SLOT_SEQUENCE,
         StaticToken::SmallCircle => PREC_SMALL_CIRCLE,
         StaticToken::Span => PREC_SPAN,
-        StaticToken::Sqrt => PREC_SQRT,
+        //StaticToken::Sqrt => PREC_SQRT,
         StaticToken::Square => PREC_SQUARE,
         StaticToken::Star => PREC_STAR,
         StaticToken::StringExpression => PREC_STRING_EXPRESSION,
@@ -902,6 +903,7 @@ lazy_static! {
         StaticToken::ArcSinh => PREC_SYMBOL,
         StaticToken::ArcCosh => PREC_SYMBOL,
         StaticToken::ArcTanh => PREC_SYMBOL,
+        StaticToken::Sqrt => PREC_SYMBOL,
     };
 }
 
@@ -1071,6 +1073,7 @@ lazy_static! {
         StaticToken::ArcSinh => Arity::Nullary,
         StaticToken::ArcCosh => Arity::Nullary,
         StaticToken::ArcTanh => Arity::Nullary,
+        StaticToken::Sqrt => Arity::Nullary,
 
         // brackets
         StaticToken::LeftAngleBracket => Arity::Unary,
@@ -1095,7 +1098,7 @@ lazy_static! {
         StaticToken::PlusMinus => Arity::Unary,
         StaticToken::Slot => Arity::Unary,
         StaticToken::SlotSequence => Arity::Unary,
-        StaticToken::Sqrt => Arity::Unary,
+        //StaticToken::Sqrt => Arity::Unary,
         StaticToken::Square => Arity::Unary,
         StaticToken::Transpose => Arity::Unary,
     };
@@ -1411,6 +1414,7 @@ lazy_static! {
         StaticToken::ArcSinh => NullaryOp::ASinh,
         StaticToken::ArcCosh => NullaryOp::ACosh,
         StaticToken::ArcTanh => NullaryOp::ATanh,
+        StaticToken::Sqrt => NullaryOp::Sqrt,
     };
 }
 
@@ -1429,7 +1433,6 @@ lazy_static! {
         StaticToken::PlusMinus => UnaryOp::UPlusMinus,
         StaticToken::Slot => UnaryOp::Slot,
         StaticToken::SlotSequence => UnaryOp::SlotSequence,
-        StaticToken::Sqrt => UnaryOp::Sqrt,
         StaticToken::Square => UnaryOp::Square,
         StaticToken::Transpose => UnaryOp::Transpose,
     };

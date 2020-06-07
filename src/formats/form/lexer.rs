@@ -57,6 +57,7 @@ pub(crate) enum StaticToken {
     ASinh,
     ACosh,
     ATanh,
+    Sqrt
 }
 
 const STR_TO_TOKEN: phf::Map<&'static [u8], StaticToken> = phf_map!{
@@ -261,6 +262,7 @@ pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static [u8], StaticToken> = phf_map!
     b"asinh_" => StaticToken::ASinh,
     b"acosh_" => StaticToken::ACosh,
     b"atanh_" => StaticToken::ATanh,
+    b"sqrt_" => StaticToken::Sqrt,
 };
 
 #[cfg(test)]
