@@ -41,6 +41,22 @@ pub(crate) enum StaticToken {
     Wildcard,
     Comma,
     Semicolon,
+    I,
+    Pi,
+    Log,
+    Exp,
+    Sin,
+    Cos,
+    Tan,
+    Sinh,
+    Cosh,
+    Tanh,
+    ASin,
+    ACos,
+    ATan,
+    ASinh,
+    ACosh,
+    ATanh,
 }
 
 const STR_TO_TOKEN: phf::Map<&'static [u8], StaticToken> = phf_map!{
@@ -205,8 +221,12 @@ impl<'a> Iterator for Lexer<'a> {
         }
         if let Ok((remaining_input, token)) = symbol(self.remaining_input) {
             self.parse_success(token, remaining_input);
-            self.last_token_was_a_symbol = true;
-            return Some(Ok(Symbol(token)))
+            if let Some(token) = BUILTIN_SYMBOL.get(token) {
+                return Some(Ok(Token::Static(*token)))
+            } else {
+                self.last_token_was_a_symbol = true;
+                return Some(Ok(Token::Symbol(token)))
+            }
         }
         self.last_token_was_a_symbol = false;
         if let Ok((remaining_input, token)) = operator_or_bracket(remaining_input) {
@@ -223,6 +243,25 @@ impl<'a> Iterator for Lexer<'a> {
         Some(Err(err))
     }
 }
+
+pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static [u8], StaticToken> = phf_map!{
+    b"i_" => StaticToken::I,
+    b"pi_" => StaticToken::Pi,
+    b"ln_" => StaticToken::Log,
+    b"exp_" => StaticToken::Exp,
+    b"sin_" => StaticToken::Sin,
+    b"cos_" => StaticToken::Cos,
+    b"tan_" => StaticToken::Tan,
+    b"sinh_" => StaticToken::Sinh,
+    b"cosh_" => StaticToken::Cosh,
+    b"tanh_" => StaticToken::Tanh,
+    b"asin_" => StaticToken::ASin,
+    b"acos_" => StaticToken::ACos,
+    b"atan_" => StaticToken::ATan,
+    b"asinh_" => StaticToken::ASinh,
+    b"acosh_" => StaticToken::ACosh,
+    b"atanh_" => StaticToken::ATanh,
+};
 
 #[cfg(test)]
 mod tests {
@@ -276,8 +315,7 @@ foo = [bar][as^3];
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));
         assert_eq!(p.next(), Some(Ok(Static(RightBracket))));
         assert_eq!(p.next(), Some(Ok(Static(Plus))));
-        let slice: &[u8] = b"ln_";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
+        assert_eq!(p.next(), Some(Ok(Static(Log))));
         assert_eq!(p.next(), Some(Ok(Static(LeftBracket))));
         let slice: &[u8] = b"x1";
         assert_eq!(p.next(), Some(Ok(Symbol(slice))));

@@ -89,6 +89,22 @@ pub fn is_symbol(i: &[u8]) -> bool {
 lazy_static! {
     pub(crate) static ref NULL_ARITY: HashMap<StaticToken, Arity> = hashmap!{
         StaticToken::Ellipsis => Arity::Nullary,
+        StaticToken::I => Arity::Nullary,
+        StaticToken::Pi => Arity::Nullary,
+        StaticToken::Log => Arity::Nullary,
+        StaticToken::Exp => Arity::Nullary,
+        StaticToken::Sin => Arity::Nullary,
+        StaticToken::Cos => Arity::Nullary,
+        StaticToken::Tan => Arity::Nullary,
+        StaticToken::Sinh => Arity::Nullary,
+        StaticToken::Cosh => Arity::Nullary,
+        StaticToken::Tanh => Arity::Nullary,
+        StaticToken::ASin => Arity::Nullary,
+        StaticToken::ACos => Arity::Nullary,
+        StaticToken::ATan => Arity::Nullary,
+        StaticToken::ASinh => Arity::Nullary,
+        StaticToken::ACosh => Arity::Nullary,
+        StaticToken::ATanh => Arity::Nullary,
 
         StaticToken::Plus => Arity::Unary,
         StaticToken::Minus => Arity::Unary,
@@ -151,5 +167,21 @@ lazy_static! {
 lazy_static! {
     pub(crate) static ref TOKEN_EXPRESSION: HashMap<StaticToken, NullaryOp<'static>> = hashmap!{
         StaticToken::Ellipsis => NullaryOp::Ellipsis,
+        StaticToken::I => NullaryOp::I,
+        StaticToken::Pi => NullaryOp::Pi,
+        StaticToken::Log => NullaryOp::Log,
+        StaticToken::Exp => NullaryOp::Exp,
+        StaticToken::Sin => NullaryOp::Sin,
+        StaticToken::Cos => NullaryOp::Cos,
+        StaticToken::Tan => NullaryOp::Tan,
+        StaticToken::Sinh => NullaryOp::Sinh,
+        StaticToken::Cosh => NullaryOp::Cosh,
+        StaticToken::Tanh => NullaryOp::Tanh,
+        StaticToken::ASin => NullaryOp::ASin,
+        StaticToken::ACos => NullaryOp::ACos,
+        StaticToken::ATan => NullaryOp::ATan,
+        StaticToken::ASinh => NullaryOp::ASinh,
+        StaticToken::ACosh => NullaryOp::ACosh,
+        StaticToken::ATanh => NullaryOp::ATanh,
     };
 }

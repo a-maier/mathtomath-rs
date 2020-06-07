@@ -117,7 +117,11 @@ impl<'a> Iterator for Lexer<'a> {
         }
         if let Ok((remaining_input, token)) = symbol(self.remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::Symbol(token.as_bytes())))
+            if let Some(token) = BUILTIN_SYMBOL.get(token) {
+                return Some(Ok(Token::Static(*token)))
+            } else {
+                return Some(Ok(Token::Symbol(token.as_bytes())))
+            }
         }
         if let Ok((remaining_input, token)) = real(self.remaining_input) {
             self.parse_success(token, remaining_input);

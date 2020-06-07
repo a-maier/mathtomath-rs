@@ -25,6 +25,20 @@ pub enum NullaryOp<'a> {
     I,
     Pi,
     Infinity,
+    Log,
+    Exp,
+    Sin,
+    Cos,
+    Tan,
+    Sinh,
+    Cosh,
+    Tanh,
+    ASin,
+    ACos,
+    ATan,
+    ASinh,
+    ACosh,
+    ATanh,
 }
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]

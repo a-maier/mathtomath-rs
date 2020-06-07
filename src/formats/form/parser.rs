@@ -142,31 +142,47 @@ fn left_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
         match token {
             Symbol(_) => PREC_SYMBOL,
             Integer(_) => PREC_INTEGER,
-            Static(token) => {
-                use StaticToken::*;
-                match token {
-                    RightBracket => PREC_RIGHT_BRACKET,
-                    RightSquareBracket => PREC_RIGHT_SQUARE_BRACKET,
-                    Ellipsis => PREC_ELLIPSIS,
-                    Semicolon => PREC_SEMICOLON,
-                    Comma => PREC_COMMA,
-                    Equals => PREC_EQUALS,
-                    Plus => PREC_PLUS,
-                    Minus => PREC_MINUS,
-                    Times => PREC_TIMES,
-                    Divide => PREC_DIVIDE,
-                    Power => PREC_POWER,
-                    Dot => PREC_DOT,
-                    LeftBracket => PREC_LEFT_BRACKET,
-                    LeftSquareBracket => PREC_LEFT_SQUARE_BRACKET,
-                    Wildcard => PREC_WILDCARD,
-                }
-            }
+            Static(token) => TOKEN_PREC[&token],
         }
     } else {
         0
     }
 }
+
+lazy_static! {
+    pub(crate) static ref TOKEN_PREC: std::collections::HashMap<StaticToken, u32> = hashmap!{
+        StaticToken::RightBracket => PREC_RIGHT_BRACKET,
+        StaticToken::RightSquareBracket => PREC_RIGHT_SQUARE_BRACKET,
+        StaticToken::Ellipsis => PREC_ELLIPSIS,
+        StaticToken::Semicolon => PREC_SEMICOLON,
+        StaticToken::Comma => PREC_COMMA,
+        StaticToken::Equals => PREC_EQUALS,
+        StaticToken::Plus => PREC_PLUS,
+        StaticToken::Minus => PREC_MINUS,
+        StaticToken::Times => PREC_TIMES,
+        StaticToken::Divide => PREC_DIVIDE,
+        StaticToken::Power => PREC_POWER,
+        StaticToken::Dot => PREC_DOT,
+        StaticToken::LeftBracket => PREC_LEFT_BRACKET,
+        StaticToken::LeftSquareBracket => PREC_LEFT_SQUARE_BRACKET,
+        StaticToken::Wildcard => PREC_WILDCARD,
+        StaticToken::Log => PREC_SYMBOL,
+        StaticToken::Exp => PREC_SYMBOL,
+        StaticToken::Sin => PREC_SYMBOL,
+        StaticToken::Cos => PREC_SYMBOL,
+        StaticToken::Tan => PREC_SYMBOL,
+        StaticToken::Sinh => PREC_SYMBOL,
+        StaticToken::Cosh => PREC_SYMBOL,
+        StaticToken::Tanh => PREC_SYMBOL,
+        StaticToken::ASin => PREC_SYMBOL,
+        StaticToken::ACos => PREC_SYMBOL,
+        StaticToken::ATan => PREC_SYMBOL,
+        StaticToken::ASinh => PREC_SYMBOL,
+        StaticToken::ACosh => PREC_SYMBOL,
+        StaticToken::ATanh => PREC_SYMBOL,
+    };
+}
+
 
 #[cfg(test)]
 mod tests {

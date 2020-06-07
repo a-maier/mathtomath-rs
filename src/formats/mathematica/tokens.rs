@@ -317,6 +317,20 @@ pub(crate) enum StaticToken {
     Wedge,
     Xnor,
     Xor,
+    Log,
+    Exp,
+    Sin,
+    Cos,
+    Tan,
+    Sinh,
+    Cosh,
+    Tanh,
+    ArcSin,
+    ArcCos,
+    ArcTan,
+    ArcSinh,
+    ArcCosh,
+    ArcTanh,
 }
 
 // STR_TO_TOKEN.keys().map(|k| k.chars().count()).max().unwrap();
@@ -663,6 +677,28 @@ pub(crate) const STR_TO_TOKEN: phf::Map<&'static str, StaticToken> = phf_map!{
     "⊻" => StaticToken::Xor,
 };
 
+pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static str, StaticToken> = phf_map!{
+    "E" => StaticToken::E,
+    "I" => StaticToken::I,
+    "Infinity" => StaticToken::Infinity,
+    "π" => StaticToken::Pi,
+    "Pi" => StaticToken::Pi,
+    "Log" => StaticToken::Log,
+    "Exp" => StaticToken::Exp,
+    "Sin" => StaticToken::Sin,
+    "Cos" => StaticToken::Cos,
+    "Tan" => StaticToken::Tan,
+    "Sinh" => StaticToken::Sinh,
+    "Cosh" => StaticToken::Cosh,
+    "Tanh" => StaticToken::Tanh,
+    "ArcSin" => StaticToken::ArcSin,
+    "ArcCos" => StaticToken::ArcCos,
+    "ArcTan" => StaticToken::ArcTan,
+    "ArcSinh" => StaticToken::ArcSinh,
+    "ArcCosh" => StaticToken::ArcCosh,
+    "ArcTanh" => StaticToken::ArcTanh,
+};
+
 lazy_static! {
     pub(crate) static ref TOKEN_PREC: HashMap<StaticToken, u32> = hashmap!{
         StaticToken::Product => PREC_PRODUCT,
@@ -852,6 +888,20 @@ lazy_static! {
         StaticToken::Wedge => PREC_WEDGE,
         StaticToken::Xnor => PREC_XNOR,
         StaticToken::Xor => PREC_XOR,
+        StaticToken::Log => PREC_SYMBOL,
+        StaticToken::Exp => PREC_SYMBOL,
+        StaticToken::Sin => PREC_SYMBOL,
+        StaticToken::Cos => PREC_SYMBOL,
+        StaticToken::Tan => PREC_SYMBOL,
+        StaticToken::Sinh => PREC_SYMBOL,
+        StaticToken::Cosh => PREC_SYMBOL,
+        StaticToken::Tanh => PREC_SYMBOL,
+        StaticToken::ArcSin => PREC_SYMBOL,
+        StaticToken::ArcCos => PREC_SYMBOL,
+        StaticToken::ArcTan => PREC_SYMBOL,
+        StaticToken::ArcSinh => PREC_SYMBOL,
+        StaticToken::ArcCosh => PREC_SYMBOL,
+        StaticToken::ArcTanh => PREC_SYMBOL,
     };
 }
 
@@ -1007,6 +1057,20 @@ lazy_static! {
         StaticToken::Pi => Arity::Nullary,
         StaticToken::Infinity => Arity::Nullary,
         StaticToken::Span => Arity::Nullary, // TODO: can be both unary and nullary
+        StaticToken::Log => Arity::Nullary,
+        StaticToken::Exp => Arity::Nullary,
+        StaticToken::Sin => Arity::Nullary,
+        StaticToken::Cos => Arity::Nullary,
+        StaticToken::Tan => Arity::Nullary,
+        StaticToken::Sinh => Arity::Nullary,
+        StaticToken::Cosh => Arity::Nullary,
+        StaticToken::Tanh => Arity::Nullary,
+        StaticToken::ArcSin => Arity::Nullary,
+        StaticToken::ArcCos => Arity::Nullary,
+        StaticToken::ArcTan => Arity::Nullary,
+        StaticToken::ArcSinh => Arity::Nullary,
+        StaticToken::ArcCosh => Arity::Nullary,
+        StaticToken::ArcTanh => Arity::Nullary,
 
         // brackets
         StaticToken::LeftAngleBracket => Arity::Unary,
@@ -1333,6 +1397,20 @@ lazy_static! {
         StaticToken::I => NullaryOp::I,
         StaticToken::Pi => NullaryOp::Pi,
         StaticToken::Infinity => NullaryOp::Infinity,
+        StaticToken::Log => NullaryOp::Log,
+        StaticToken::Exp => NullaryOp::Exp,
+        StaticToken::Sin => NullaryOp::Sin,
+        StaticToken::Cos => NullaryOp::Cos,
+        StaticToken::Tan => NullaryOp::Tan,
+        StaticToken::Sinh => NullaryOp::Sinh,
+        StaticToken::Cosh => NullaryOp::Cosh,
+        StaticToken::Tanh => NullaryOp::Tanh,
+        StaticToken::ArcSin => NullaryOp::ASin,
+        StaticToken::ArcCos => NullaryOp::ACos,
+        StaticToken::ArcTan => NullaryOp::ATan,
+        StaticToken::ArcSinh => NullaryOp::ASinh,
+        StaticToken::ArcCosh => NullaryOp::ACosh,
+        StaticToken::ArcTanh => NullaryOp::ATanh,
     };
 }
 
