@@ -118,6 +118,10 @@ impl<'a> Parser<'a> {
                     Ok(binary_op_to_expr(s, left, right))
                 },
                 Some(Function) => {
+                    if *next == Some(Token::Static(CLOSING_BRACKET[&s])) {
+                        *next = self.lexer.next().transpose()?;
+                        return Ok(function_to_expr(s, left, Expression::Nullary(NullaryOp::Empty)));
+                    }
                     let right = self.parse_with(next, 0)?;
                     if *next == Some(Token::Static(CLOSING_BRACKET[&s])) {
                         *next = self.lexer.next().transpose()?;
