@@ -57,20 +57,14 @@ fn format<W: io::Write>(
             w.write_all(op)?;
         },
         Infix(left_arg, op, right_arg) => {
+            // TODO: this assumes left-associativity
             let left_arg = properties(left_arg);
             let left_arg_prec = left_arg.prec;
             format(w, left_arg, left_arg_prec < prec)?;
             w.write_all(op)?;
             let right_arg = properties(right_arg);
             let right_arg_prec = right_arg.prec;
-            // add bracket if operand on the right is of the same time
-            // e.g. a - (b - c)
-            let need_bracket = if let Infix(_, right_op, _) = right_arg.kind {
-                right_op == op || right_arg_prec < prec
-            } else {
-                right_arg_prec < prec
-            };
-            format(w, right_arg, need_bracket)?;
+            format(w, right_arg, right_arg_prec <= prec)?;
         },
         Circumfix(left, arg, right) => {
             let arg = properties(arg);
