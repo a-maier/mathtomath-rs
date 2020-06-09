@@ -299,7 +299,6 @@ pub enum BinaryOp {
     StringJoin,
     Subset,
     SubsetEqual,
-    Subtract,
     SubtractFrom,
     Succeeds,
     SucceedsEqual,
