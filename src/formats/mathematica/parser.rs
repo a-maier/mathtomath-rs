@@ -39,7 +39,7 @@ impl<'a> Parser<'a> {
         let mut token = *next;
         *next = self.lexer.next().transpose()?;
         let mut left = self.null(token, &mut next)?;
-        while right_binding_power < binding_power(*next) {
+        while right_binding_power < left_binding_power(*next) {
             token = *next;
             *next = self.lexer.next().transpose()?;
             left = self.left(token, &mut next, left)?;
@@ -80,8 +80,7 @@ impl<'a> Parser<'a> {
                             }
                         } else {
                             // standard unary prefix operator
-                            // TODO: differentiate between prefix and infix/postfix precedence
-                            let prec = binding_power(Some(token));
+                            let prec = null_binding_power(Some(token));
                             let arg = self.parse_with(next, prec)?;
                             Ok(prefix_op_to_expr(s, arg))
                         },
@@ -113,7 +112,7 @@ impl<'a> Parser<'a> {
             match LEFT_ARITY.get(&s) {
                 Some(Unary) => Ok(postfix_op_to_expr(s, left)),
                 Some(Binary) => {
-                    let right_binding_power = binding_power(token);
+                    let right_binding_power = left_binding_power(token);
                     let right = self.parse_with(next, right_binding_power)?;
                     Ok(binary_op_to_expr(s, left, right))
                 },
@@ -145,7 +144,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-fn binding_power<'a>(token: Option<Token<'a>>) -> u32 {
+fn left_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
     debug!("look up left binding power of {:?}", token);
     use Token::*;
     if let Some(token) = token {
@@ -167,6 +166,17 @@ fn binding_power<'a>(token: Option<Token<'a>>) -> u32 {
         }
     } else {
         0
+    }
+}
+
+fn null_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
+    debug!("look up null binding power of {:?}", token);
+    match token {
+        Some(Token::Static(StaticToken::Subtract)) => PREC_UMINUS,
+        Some(Token::Static(StaticToken::Plus)) => PREC_UPLUS,
+        Some(Token::Static(StaticToken::PlusMinus)) => PREC_UPLUS_MINUS,
+        Some(Token::Static(StaticToken::MinusPlus)) => PREC_UMINUS_PLUS,
+        _ => left_binding_power(token)
     }
 }
 

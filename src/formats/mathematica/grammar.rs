@@ -161,7 +161,8 @@ pub const PREC_UPLUS_MINUS: u32 = 70;
 pub const PREC_PLUS_MINUS: u32 = 53;
 pub const PREC_POWER: u32 = 79;
 pub const PREC_SUBSCRIPT: u32 = 92;
-pub const PREC_UMINUS: u32 = 30; // listed under Times
+pub const PREC_UMINUS: u32 = 70;
+pub const PREC_UPLUS: u32 = PREC_UMINUS;
 pub const PREC_TIMES: u32 = 62;
 
 // no idea how to enter these anyway in input form

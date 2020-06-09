@@ -74,8 +74,7 @@ impl<'a> Parser<'a> {
                             }
                         } else {
                             // standard unary prefix operator
-                            // TODO: differentiate between prefix and infix/postfix precedence
-                            let prec = left_binding_power(Some(token));
+                            let prec = null_binding_power(Some(token));
                             let arg = self.parse_with(next, prec)?;
                             Ok(prefix_op_to_expr(s, arg))
                         },
@@ -153,6 +152,15 @@ fn left_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
     }
 }
 
+fn null_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
+    debug!("look up null binding power of {:?}", token);
+    match token {
+        Some(Token::Static(StaticToken::Minus)) => PREC_UMINUS,
+        Some(Token::Static(StaticToken::Plus)) => PREC_UPLUS,
+        _ => left_binding_power(token)
+    }
+}
+
 lazy_static! {
     pub(crate) static ref TOKEN_PREC: std::collections::HashMap<StaticToken, u32> = hashmap!{
         StaticToken::RightBracket => PREC_RIGHT_BRACKET,
@@ -186,7 +194,6 @@ lazy_static! {
         StaticToken::ATanh => PREC_SYMBOL,
     };
 }
-
 
 #[cfg(test)]
 mod tests {
