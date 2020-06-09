@@ -803,7 +803,7 @@ lazy_static! {
         StaticToken::NestedLessLess => PREC_LESS, // guess
         StaticToken::NonCommutativeMultiply => PREC_NON_COMMUTATIVE_MULTIPLY,
         StaticToken::Nor => PREC_NOR,
-        StaticToken::Not => PREC_NOT,
+        StaticToken::Not => PREC_FACTORIAL,
         // the following precedences are uneducated guesses
         StaticToken::NotCupCap => PREC_CUP,
         StaticToken::NotDoubleVerticalBar => PREC_DOUBLE_VERTICAL_BAR,

@@ -176,6 +176,7 @@ fn null_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
         Some(Token::Static(StaticToken::Plus)) => PREC_UPLUS,
         Some(Token::Static(StaticToken::PlusMinus)) => PREC_UPLUS_MINUS,
         Some(Token::Static(StaticToken::MinusPlus)) => PREC_UMINUS_PLUS,
+        Some(Token::Static(StaticToken::Not)) => PREC_NOT,
         _ => left_binding_power(token)
     }
 }
