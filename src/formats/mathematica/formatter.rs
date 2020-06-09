@@ -211,6 +211,7 @@ fn properties(
             UnaryOp::PostfixDecrement => (PREC_DECREMENT, Postfix(*arg, "--")),
             //Degree => (PREC_DEGREE, Postfix(*arg, "°")),
             UnaryOp::Factorial => (PREC_FACTORIAL, Postfix(*arg, "!")),
+            UnaryOp::DoubleFactorial => (PREC_FACTORIAL2, Postfix(*arg, "!!")),
             //            SuperDagger => (PREC_SUPER_DAGGER, fix(*arg)),
             UnaryOp::PureFunction => (PREC_FUNCTION_AMP, Postfix(*arg, "&")),
             unknown => (PREC_ATOM, UnknownUnary(unknown, *arg)),

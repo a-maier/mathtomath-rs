@@ -40,6 +40,7 @@ pub(crate) enum StaticToken {
     Blank,
     BlankNullSequence,
     BlankSequence,
+    DoubleFactorial,
     LeftBracket,
     RightBracket,
     Cap,
@@ -505,6 +506,7 @@ pub(crate) const STR_TO_TOKEN: phf::Map<&'static str, StaticToken> = phf_map!{
     "**" => StaticToken::NonCommutativeMultiply,
     "⊽" => StaticToken::Nor,
     "!" => StaticToken::Not,
+    "!!" => StaticToken::DoubleFactorial,
     "¬" => StaticToken::Not,
     "≢" => StaticToken::NotCongruent,
     "≭" => StaticToken::NotCupCap,
@@ -749,6 +751,7 @@ lazy_static! {
         StaticToken::DivideBy => PREC_DIVIDE_BY,
         StaticToken::Dot => PREC_DOT,
         StaticToken::DotEqual => PREC_EQUAL, // guess
+        StaticToken::DoubleFactorial => PREC_FACTORIAL2,
         StaticToken::DownTee => PREC_DOWN_TEE,
         StaticToken::E => PREC_SYMBOL,
         StaticToken::Element => PREC_ELEMENT,
@@ -1123,6 +1126,7 @@ lazy_static! {
         StaticToken::Function => Arity::Unary,
         StaticToken::Increment => Arity::Unary,
         StaticToken::Not => Arity::Unary,
+        StaticToken::DoubleFactorial => Arity::Unary,
         StaticToken::SuperDagger => Arity::Unary,
 
         StaticToken::Pattern => Arity::Binary,
@@ -1454,6 +1458,7 @@ lazy_static! {
         StaticToken::Function => UnaryOp::PureFunction,
         StaticToken::Increment => UnaryOp::PostfixIncrement,
         StaticToken::Not => UnaryOp::Factorial,
+        StaticToken::DoubleFactorial => UnaryOp::DoubleFactorial,
         StaticToken::SuperDagger => UnaryOp::SuperDagger,
     };
 }

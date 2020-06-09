@@ -74,6 +74,7 @@ pub enum UnaryOp {
     PostfixDecrement,
     Degree,
     Factorial,
+    DoubleFactorial,
     SuperDagger,
     PureFunction,
 }
