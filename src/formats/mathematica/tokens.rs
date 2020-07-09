@@ -606,6 +606,7 @@ pub(crate) const STR_TO_TOKEN: phf::Map<&'static str, StaticToken> = phf_map!{
     "⥔" => StaticToken::RightUpVectorBar,
     "⇀" => StaticToken::RightVector,
     "⥓" => StaticToken::RightVectorBar,
+    "->" => StaticToken::Rule,
     "=>" => StaticToken::Rule,
     "" => StaticToken::Rule,
     ":>" => StaticToken::RuleDelayed,
