@@ -178,6 +178,8 @@ dependencies = [
  "regex",
  "structopt",
  "subslice",
+ "termcolor",
+ "unicode-segmentation",
 ]
 
 [[package]]
