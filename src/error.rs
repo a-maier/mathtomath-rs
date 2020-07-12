@@ -14,6 +14,7 @@ pub enum ErrorKind {
     NotAToken,
     Unmatched(&'static str),
     Utf8Error(str::Utf8Error),
+    RemainingToken,
 }
 
 impl error::Error for SyntaxError {

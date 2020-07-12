@@ -27,7 +27,29 @@ impl<'a> Parser<'a> {
 
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
         let mut next = self.lexer.next().transpose()?;
-        self.parse_with(&mut next, 0)
+        let res = self.parse_with(&mut next, 0)?;
+        debug!("remaining token: {:?}", next);
+        match next {
+            None => Ok(res),
+            Some(token) => {
+                use Token::Static;
+                use StaticToken::*;
+                let pos = self.lexer.pos();
+                match token {
+                    Static(RightAngleBracket)
+                        | Static(RightAssociation)
+                        | Static(RightBracket)
+                        | Static(RightCeiling)
+                        | Static(RightFloor)
+                        | Static(RightSquareBracket)
+                        | Static(RightPart)
+                        | Static(RightList)
+                        | Static(RightTee)
+                        => Err(SyntaxError::new(Unmatched(""), pos)),
+                    _ => Err(SyntaxError::new(RemainingToken, pos))
+                }
+            }
+        }
     }
 
     fn parse_with(

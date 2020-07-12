@@ -26,7 +26,21 @@ impl<'a> Parser<'a> {
 
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
         let mut next = self.lexer.next().transpose()?;
-        self.parse_with(&mut next, 0)
+        let res = self.parse_with(&mut next, 0)?;
+        debug!("remaining token: {:?}", next);
+        match next {
+            None => Ok(res),
+            Some(token) => {
+                use Token::Static;
+                use StaticToken::{RightBracket, RightSquareBracket};
+                let pos = self.lexer.pos();
+                match token {
+                    Static(RightBracket) => Err(SyntaxError::new(Unmatched(")"), pos)),
+                    Static(RightSquareBracket) => Err(SyntaxError::new(Unmatched("]"), pos)),
+                    _ => Err(SyntaxError::new(RemainingToken, pos))
+                }
+            }
+        }
     }
 
     fn parse_with(
@@ -70,7 +84,12 @@ impl<'a> Parser<'a> {
                                 *next = self.lexer.next().transpose()?;
                                 Ok(bracket_to_expr(s, arg))
                             } else {
-                                Err(SyntaxError::new(Unmatched(""), pos))
+                                let what = match s {
+                                    StaticToken::LeftBracket => "(",
+                                    StaticToken::LeftSquareBracket => "[",
+                                    _ => unreachable!(),
+                                };
+                                Err(SyntaxError::new(Unmatched(what), pos))
                             }
                         } else {
                             // standard unary prefix operator
