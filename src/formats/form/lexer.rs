@@ -1,4 +1,5 @@
 use crate::error::{SyntaxError, ErrorKind::*};
+use crate::range::Range;
 
 use std::str::from_utf8;
 
@@ -196,15 +197,10 @@ impl<'a> Lexer<'a> {
         self.pos += token.len();
         self.remaining_input = new_remaining;
     }
-}
 
-impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token<'a>, SyntaxError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_norange(&mut self) -> Option<Result<Token<'a>, SyntaxError>> {
         use Token::*;
         use StaticToken::*;
-        trace!("lexer called on {}", from_utf8(self.remaining_input).unwrap());
         let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
         if !ws.is_empty() {
             self.parse_success(ws, remaining_input);
@@ -242,6 +238,25 @@ impl<'a> Iterator for Lexer<'a> {
         self.remaining_input = b"";
         debug!("{}", err);
         Some(Err(err))
+    }
+
+}
+
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Result<(Token<'a>, Range<usize>), SyntaxError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        trace!("lexer called on {:?}", from_utf8(self.remaining_input));
+        let old_pos = self.pos;
+        if let Some(t) = self.next_norange() {
+            let res = match t {
+                Ok(token) => Ok((token, Range{start: old_pos, end: self.pos})),
+                Err(err) => Err(err),
+            };
+            Some(res)
+        } else {
+            None
+        }
     }
 }
 
@@ -289,68 +304,68 @@ foo = [bar][as^3];
 #include- << parse fails here
 ".as_bytes();
         let mut p = Lexer::for_input(&expr);
-        assert_eq!(p.next(), Some(Ok(Static(Plus))));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
         let slice: &[u8] = b"35";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Minus))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Minus));
         let slice: &[u8] = "[iπs[a]f]".as_bytes();
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Wildcard))));
-        assert_eq!(p.next(), Some(Ok(Static(Dot))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Wildcard));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Dot));
         let slice: &[u8] = b"q";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Divide))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Divide));
         let slice: &[u8] = b"den";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(LeftBracket))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftBracket));
         let slice: &[u8] = b"4";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Times))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Times));
         let slice: &[u8] = b"a";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Power))));
-        assert_eq!(p.next(), Some(Ok(Static(Minus))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Power));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Minus));
         let slice: &[u8] = b"3";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Comma))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Comma));
         let slice: &[u8] = b"$a";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(RightBracket))));
-        assert_eq!(p.next(), Some(Ok(Static(Plus))));
-        assert_eq!(p.next(), Some(Ok(Static(Log))));
-        assert_eq!(p.next(), Some(Ok(Static(LeftBracket))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Log));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftBracket));
         let slice: &[u8] = b"x1";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Comma))));
-        assert_eq!(p.next(), Some(Ok(Static(Ellipsis))));
-        assert_eq!(p.next(), Some(Ok(Static(Comma))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Comma));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Ellipsis));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Comma));
         let slice: &[u8] = b"x6";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(RightBracket))));
-        assert_eq!(p.next(), Some(Ok(Static(Semicolon))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Semicolon));
         let slice: &[u8] = b"foo";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Equals))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Equals));
         let slice: &[u8] = b"[bar]";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(LeftSquareBracket))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftSquareBracket));
         let slice: &[u8] = b"as";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Power))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Power));
         let slice: &[u8] = b"3";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(RightSquareBracket))));
-        assert_eq!(p.next(), Some(Ok(Static(Semicolon))));
-        assert_eq!(p.next(), Some(Ok(Static(Times))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightSquareBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Semicolon));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Times));
         let slice: &[u8] = b"[this is\n*not a comment]";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_matches!(p.next(), Some(Err(_)));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_matches!(p.next().unwrap(), Err(_));
 
         assert_eq!(p.next(), None);
 
         let expr: &[u8] = b"+ ";
         let mut p = Lexer::for_input(&expr);
-        assert_eq!(p.next(), Some(Ok(Static(Plus))));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
         assert_eq!(p.next(), None);
     }
 }

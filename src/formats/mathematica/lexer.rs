@@ -1,4 +1,5 @@
 use crate::error::{SyntaxError, ErrorKind::*};
+use crate::range::Range;
 use super::tokens::*;
 
 use nom::{
@@ -100,13 +101,8 @@ impl<'a> Lexer<'a> {
         self.pos += token.len();
         self.remaining_input = new_remaining;
     }
-}
 
-impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token<'a>, SyntaxError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        trace!("lexer called on {}", self.remaining_input);
+    fn next_norange(&mut self) -> Option<Result<Token<'a>, SyntaxError>> {
         loop {
             let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
             if ws.is_empty() { break }
@@ -147,6 +143,24 @@ impl<'a> Iterator for Lexer<'a> {
     }
 }
 
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Result<(Token<'a>, Range<usize>), SyntaxError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        trace!("lexer called on {}", self.remaining_input);
+        let old_pos = self.pos;
+        if let Some(t) = self.next_norange() {
+            let res = match t {
+                Ok(token) => Ok((token, Range{start: old_pos, end: self.pos})),
+                Err(err) => Err(err),
+            };
+            Some(res)
+        } else {
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,63 +183,63 @@ mod tests {
 foo = 〈as^.238〉;
 "#;
         let mut p = Lexer::for_input(&expr);
-        assert_eq!(p.next(), Some(Ok(Static(Plus))));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
         let slice: &[u8] = b"35";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Subtract))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Subtract));
         let slice: &[u8] = r#"iπs\"[a]f]"#.as_bytes();
-        assert_eq!(p.next(), Some(Ok(String(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Blank))));
-        assert_eq!(p.next(), Some(Ok(Static(Dot))));
+        assert_eq!(p.next().unwrap().unwrap().0, String(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Blank));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Dot));
         let slice: &[u8] = b"q";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Divide))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Divide));
         let slice: &[u8] = b"den";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(LeftSquareBracket))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftSquareBracket));
         let slice: &[u8] = b"4";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Times))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Times));
         let slice: &[u8] = b"a";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Power))));
-        assert_eq!(p.next(), Some(Ok(Static(Subtract))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Power));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Subtract));
         let slice: &[u8] = b"3";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Comma))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Comma));
         let slice: &[u8] = b"$a";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(LeftPart))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftPart));
         let slice: &[u8] = b"1";
-        assert_eq!(p.next(), Some(Ok(Integer(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(RightPart))));
-        assert_eq!(p.next(), Some(Ok(Static(RightSquareBracket))));
-        assert_eq!(p.next(), Some(Ok(Static(Plus))));
+        assert_eq!(p.next().unwrap().unwrap().0, Integer(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightPart));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightSquareBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
         let slice: &[u8] = b"ln";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(LeftSquareBracket))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftSquareBracket));
         let slice: &[u8] = b"x1";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Comma))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Comma));
         let slice: &[u8] = b"x6";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(RightSquareBracket))));
-        assert_eq!(p.next(), Some(Ok(Static(CompoundExpression))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightSquareBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(CompoundExpression));
         let slice: &[u8] = b"foo";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Set))));
-        assert_eq!(p.next(), Some(Ok(Static(LeftAngleBracket))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Set));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftAngleBracket));
         let slice: &[u8] = b"as";
-        assert_eq!(p.next(), Some(Ok(Symbol(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(Power))));
+        assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Power));
         let slice: &[u8] = b".238";
-        assert_eq!(p.next(), Some(Ok(Real(slice))));
-        assert_eq!(p.next(), Some(Ok(Static(RightAngleBracket))));
-        assert_eq!(p.next(), Some(Ok(Static(CompoundExpression))));
+        assert_eq!(p.next().unwrap().unwrap().0, Real(slice));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightAngleBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(CompoundExpression));
         assert_eq!(p.next(), None);
 
         let mut p = Lexer::for_input("+ ");
-        assert_eq!(p.next(), Some(Ok(Static(Plus))));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
         assert_eq!(p.next(), None);
     }
 }

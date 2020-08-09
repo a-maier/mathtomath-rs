@@ -4,6 +4,7 @@ use super::lexer::{Lexer, Token, StaticToken};
 use crate::arity::Arity;
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::*;
+use crate::range::Range;
 
 pub fn parse<'a>(input: &'a [u8]) -> Result<Expression<'a>, SyntaxError> {
     let mut parser = Parser::new(input);
@@ -30,14 +31,13 @@ impl<'a> Parser<'a> {
         debug!("remaining token: {:?}", next);
         match next {
             None => Ok(res),
-            Some(token) => {
+            Some((token, pos)) => {
                 use Token::Static;
                 use StaticToken::{RightBracket, RightSquareBracket};
-                let pos = self.lexer.pos();
                 match token {
-                    Static(RightBracket) => Err(SyntaxError::new(Unmatched(")"), pos)),
-                    Static(RightSquareBracket) => Err(SyntaxError::new(Unmatched("]"), pos)),
-                    _ => Err(SyntaxError::new(RemainingToken, pos))
+                    Static(RightBracket) => Err(SyntaxError::new(Unmatched(")"), pos.start)),
+                    Static(RightSquareBracket) => Err(SyntaxError::new(Unmatched("]"), pos.start)),
+                    _ => Err(SyntaxError::new(RemainingToken, pos.start))
                 }
             }
         }
@@ -45,7 +45,7 @@ impl<'a> Parser<'a> {
 
     fn parse_with(
         &mut self,
-        mut next: &mut Option<Token<'a>>,
+        mut next: &mut Option<(Token<'a>, Range<usize>)>,
         right_binding_power: u32
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("parser called with rbp {}", right_binding_power);
@@ -63,14 +63,14 @@ impl<'a> Parser<'a> {
 
     fn null(
         &mut self,
-        token: Option<Token<'a>>,
-        next: &mut Option<Token<'a>>
+        token: Option<(Token<'a>, Range<usize>)>,
+        next: &mut Option<(Token<'a>, Range<usize>)>
     ) -> Result<Expression<'a>, SyntaxError> {
         use Expression::*;
         use NullaryOp::*;
         debug!("null called on token {:?}", token);
-        if let Some(token) = token {
-            match token {
+        if let Some((tok, pos)) = token {
+            match tok {
                 Token::Symbol(name) => Ok(Nullary(Symbol(name))),
                 Token::Integer(int) => Ok(Nullary(Integer(int))),
                 Token::Static(s) => {
@@ -78,9 +78,9 @@ impl<'a> Parser<'a> {
                         Some(Arity::Nullary) => Ok(Nullary(TOKEN_EXPRESSION[&s].clone())),
                         Some(Arity::Unary) => if let Some(closing) = CLOSING_BRACKET.get(&s) {
                             // this is actually a bracket
-                            let pos = self.pos();
                             let arg = self.parse_with(next, 0)?;
-                            if *next == Some(Token::Static(*closing)) {
+                            let next_token = next.as_ref().map(|(t, _pos)| t);
+                            if next_token == Some(&Token::Static(*closing)) {
                                 *next = self.lexer.next().transpose()?;
                                 Ok(bracket_to_expr(s, arg))
                             } else {
@@ -89,11 +89,11 @@ impl<'a> Parser<'a> {
                                     StaticToken::LeftSquareBracket => "[",
                                     _ => unreachable!(),
                                 };
-                                Err(SyntaxError::new(Unmatched(what), pos))
+                                Err(SyntaxError::new(Unmatched(what), pos.start))
                             }
                         } else {
                             // standard unary prefix operator
-                            let prec = null_binding_power(Some(token));
+                            let prec = null_binding_power(token);
                             let arg = self.parse_with(next, prec)?;
                             Ok(prefix_op_to_expr(s, arg))
                         },
@@ -114,13 +114,12 @@ impl<'a> Parser<'a> {
 
     fn left(
         &mut self,
-        token: Option<Token<'a>>,
-        next: &mut Option<Token<'a>>,
+        token: Option<(Token<'a>, Range<usize>)>,
+        next: &mut Option<(Token<'a>, Range<usize>)>,
         left: Expression<'a>,
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("left called on token {:?}", token);
-        let pos = self.pos();
-        if let Some(Token::Static(s)) = token {
+        if let Some((Token::Static(s), pos)) = token {
             use Arity::*;
             match LEFT_ARITY.get(&s) {
                 Some(Unary) => Ok(postfix_op_to_expr(s, left)),
@@ -130,25 +129,27 @@ impl<'a> Parser<'a> {
                     Ok(binary_op_to_expr(s, left, right))
                 },
                 Some(Function) => {
-                    if *next == Some(Token::Static(CLOSING_BRACKET[&s])) {
+                    let next_token = next.as_ref().map(|(t, _pos)| t);
+                    if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
                         *next = self.lexer.next().transpose()?;
                         return Ok(function_to_expr(s, left, Expression::Nullary(NullaryOp::Empty)));
                     }
                     let right = self.parse_with(next, 0)?;
-                    if *next == Some(Token::Static(CLOSING_BRACKET[&s])) {
+                    let next_token = next.as_ref().map(|(t, _pos)| t);
+                    if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
                         *next = self.lexer.next().transpose()?;
                         Ok(function_to_expr(s, left, right))
                     } else {
-                        Err(SyntaxError::new(Unmatched(""), pos))
+                        Err(SyntaxError::new(Unmatched(""), pos.start))
                     }
                 },
                 Some(arity) => unreachable!(
                     "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
                 ),
-                None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos))
+                None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
             }
         } else {
-            Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), pos))
+            Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()))
         }
     }
 
@@ -157,10 +158,10 @@ impl<'a> Parser<'a> {
     }
 }
 
-fn left_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
+fn left_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
     debug!("look up left binding power of {:?}", token);
     use Token::*;
-    if let Some(token) = token {
+    if let Some((token, _pos)) = token {
         match token {
             Symbol(_) => PREC_SYMBOL,
             Integer(_) => PREC_INTEGER,
@@ -171,11 +172,12 @@ fn left_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
     }
 }
 
-fn null_binding_power<'a>(token: Option<Token<'a>>) -> u32 {
+fn null_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
     debug!("look up null binding power of {:?}", token);
-    match token {
-        Some(Token::Static(StaticToken::Minus)) => PREC_UMINUS,
-        Some(Token::Static(StaticToken::Plus)) => PREC_UPLUS,
+    let tok = token.as_ref().map(|(t, _pos)| t);
+    match tok {
+        Some(&Token::Static(StaticToken::Minus)) => PREC_UMINUS,
+        Some(&Token::Static(StaticToken::Plus)) => PREC_UPLUS,
         _ => left_binding_power(token)
     }
 }

@@ -15,6 +15,7 @@ mod error;
 mod expression;
 mod arity;
 mod formats;
+mod range;
 
 use expression::Expression;
 use error::{Error, ParseError, SyntaxError};
