@@ -198,13 +198,9 @@ impl<'a> Lexer<'a> {
         self.remaining_input = new_remaining;
     }
 
-    fn next_norange(&mut self) -> Option<Result<Token<'a>, SyntaxError>> {
+    fn next_nospace(&mut self) -> Option<Result<Token<'a>, SyntaxError>> {
         use Token::*;
         use StaticToken::*;
-        let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
-        if !ws.is_empty() {
-            self.parse_success(ws, remaining_input);
-        }
         if self.remaining_input.is_empty() {
             return None;
         }
@@ -226,11 +222,11 @@ impl<'a> Lexer<'a> {
             }
         }
         self.last_token_was_a_symbol = false;
-        if let Ok((remaining_input, token)) = operator_or_bracket(remaining_input) {
+        if let Ok((remaining_input, token)) = operator_or_bracket(self.remaining_input) {
             self.parse_success(token, remaining_input);
             return Some(Ok(Static(STR_TO_TOKEN[token])))
         }
-        if let Ok((remaining_input, token)) = integer(remaining_input) {
+        if let Ok((remaining_input, token)) = integer(self.remaining_input) {
             self.parse_success(token, remaining_input);
             return Some(Ok(Integer(token)))
         }
@@ -247,8 +243,12 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         trace!("lexer called on {:?}", from_utf8(self.remaining_input));
+        let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
+        if !ws.is_empty() {
+            self.parse_success(ws, remaining_input);
+        }
         let old_pos = self.pos;
-        if let Some(t) = self.next_norange() {
+        if let Some(t) = self.next_nospace() {
             let res = match t {
                 Ok(token) => Ok((token, Range{start: old_pos, end: self.pos})),
                 Err(err) => Err(err),

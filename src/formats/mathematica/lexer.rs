@@ -102,12 +102,7 @@ impl<'a> Lexer<'a> {
         self.remaining_input = new_remaining;
     }
 
-    fn next_norange(&mut self) -> Option<Result<Token<'a>, SyntaxError>> {
-        loop {
-            let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
-            if ws.is_empty() { break }
-            self.parse_success(ws, remaining_input);
-        }
+    fn next_nospace(&mut self) -> Option<Result<Token<'a>, SyntaxError>> {
         if self.remaining_input.is_empty() {
             return None;
         }
@@ -148,8 +143,13 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         trace!("lexer called on {}", self.remaining_input);
+        loop {
+            let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
+            if ws.is_empty() { break }
+            self.parse_success(ws, remaining_input);
+        }
         let old_pos = self.pos;
-        if let Some(t) = self.next_norange() {
+        if let Some(t) = self.next_nospace() {
             let res = match t {
                 Ok(token) => Ok((token, Range{start: old_pos, end: self.pos})),
                 Err(err) => Err(err),
