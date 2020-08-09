@@ -1,18 +1,18 @@
 use std::{str, error, fmt};
 
-#[derive(Copy,Clone,Eq,PartialEq,Debug)]
+#[derive(Clone,Eq,PartialEq,Debug)]
 pub struct SyntaxError {
     kind: ErrorKind,
     pos: usize,
 }
 
-#[derive(Copy,Clone,Eq,PartialEq,Debug)]
+#[derive(Clone,Eq,PartialEq,Debug)]
 pub enum ErrorKind {
     EarlyEOF(&'static str),
     ExpectLeft(&'static str),
     ExpectNull(&'static str),
     NotAToken,
-    Unmatched(&'static str),
+    Unmatched(String),
     Utf8Error(str::Utf8Error),
     RemainingToken,
 }
@@ -37,7 +37,7 @@ impl fmt::Display for SyntaxError {
             EarlyEOF(s) => write!(f, "unexpected end of expression, expected {}", s)?,
             ExpectLeft(s) | ExpectNull(s) => write!(f, "unexpected token, expected {}", s)?,
             NotAToken => write!(f, "unknown token")?,
-            Unmatched(_) => write!(f, "unmatched bracket")?,
+            Unmatched(ref b) => write!(f, "unmatched bracket {}", b)?,
             Utf8Error(err) => write!(f, "utf8 conversion error: {}", err)?,
             RemainingToken => write!(f, "remaining text after parsing expression")?,
         };

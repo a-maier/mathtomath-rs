@@ -14,6 +14,7 @@ pub fn parse<'a>(input: &'a [u8]) -> Result<Expression<'a>, SyntaxError> {
 #[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 struct Parser<'a> {
     lexer: Lexer<'a>,
+    input: &'a [u8],
 }
 
 const LEFT_TOKENS: &'static str =
@@ -22,7 +23,7 @@ const LEFT_TOKENS: &'static str =
 impl<'a> Parser<'a> {
     fn new(input: &'a [u8]) -> Self {
         let lexer = Lexer::for_input(input);
-        Parser{lexer}
+        Parser{lexer, input}
     }
 
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
@@ -35,8 +36,8 @@ impl<'a> Parser<'a> {
                 use Token::Static;
                 use StaticToken::{RightBracket, RightSquareBracket};
                 match token {
-                    Static(RightBracket) => Err(SyntaxError::new(Unmatched(")"), pos.start)),
-                    Static(RightSquareBracket) => Err(SyntaxError::new(Unmatched("]"), pos.start)),
+                    Static(RightBracket) => Err(SyntaxError::new(Unmatched(")".to_string()), pos.start)),
+                    Static(RightSquareBracket) => Err(SyntaxError::new(Unmatched("]".to_string()), pos.start)),
                     _ => Err(SyntaxError::new(RemainingToken, pos.start))
                 }
             }
@@ -84,12 +85,10 @@ impl<'a> Parser<'a> {
                                 *next = self.lexer.next().transpose()?;
                                 Ok(bracket_to_expr(s, arg))
                             } else {
-                                let what = match s {
-                                    StaticToken::LeftBracket => "(",
-                                    StaticToken::LeftSquareBracket => "[",
-                                    _ => unreachable!(),
-                                };
-                                Err(SyntaxError::new(Unmatched(what), pos.start))
+                                let bracket = std::str::from_utf8(
+                                    &self.input[pos.start..pos.end]
+                                ).unwrap().to_owned();
+                                Err(SyntaxError::new(Unmatched(bracket), pos.start))
                             }
                         } else {
                             // standard unary prefix operator
@@ -140,7 +139,10 @@ impl<'a> Parser<'a> {
                         *next = self.lexer.next().transpose()?;
                         Ok(function_to_expr(s, left, right))
                     } else {
-                        Err(SyntaxError::new(Unmatched(""), pos.start))
+                        let bracket = std::str::from_utf8(
+                            &self.input[pos.start..pos.end]
+                        ).unwrap().to_owned();
+                        Err(SyntaxError::new(Unmatched(bracket), pos.start))
                     }
                 },
                 Some(arity) => unreachable!(

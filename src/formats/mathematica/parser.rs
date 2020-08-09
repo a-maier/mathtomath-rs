@@ -15,6 +15,7 @@ pub fn parse<'a>(input: &'a str) -> Result<Expression<'a>, SyntaxError> {
 #[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 struct Parser<'a> {
     lexer: Lexer<'a>,
+    input: &'a str,
 }
 
 const LEFT_TOKENS: &'static str =
@@ -23,7 +24,7 @@ const LEFT_TOKENS: &'static str =
 impl<'a> Parser<'a> {
     fn new(input: &'a str) -> Self {
         let lexer = Lexer::for_input(input);
-        Parser{lexer}
+        Parser{lexer, input}
     }
 
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
@@ -45,7 +46,10 @@ impl<'a> Parser<'a> {
                         | Static(RightPart)
                         | Static(RightList)
                         | Static(RightTee)
-                        => Err(SyntaxError::new(Unmatched(""), pos.start)),
+                        => {
+                            let bracket = self.input[pos.start..pos.end].to_owned();
+                            Err(SyntaxError::new(Unmatched(bracket), pos.start))
+                        },
                     _ => Err(SyntaxError::new(RemainingToken, pos.start))
                 }
             }
@@ -93,15 +97,13 @@ impl<'a> Parser<'a> {
                         Some(Unary) => if let Some(closing) = CLOSING_BRACKET.get(&s) {
                             // this is actually a bracket
                             let arg = self.parse_with(next, 0)?;
-                            if let Some((c, _)) = *next {
-                                if c == Token::Static(*closing) {
-                                    *next = self.lexer.next().transpose()?;
-                                    Ok(bracket_to_expr(s, arg))
-                                } else {
-                                    Err(SyntaxError::new(Unmatched(""), pos.start))
-                                }
+                            let next_token = next.as_ref().map(|(t, _pos)| t);
+                            if next_token == Some(&Token::Static(*closing)) {
+                                *next = self.lexer.next().transpose()?;
+                                Ok(bracket_to_expr(s, arg))
                             } else {
-                                Err(SyntaxError::new(Unmatched(""), pos.start))
+                                let bracket = self.input[pos.start..pos.end].to_owned();
+                                Err(SyntaxError::new(Unmatched(bracket), pos.start))
                             }
                         } else {
                             // standard unary prefix operator
@@ -152,7 +154,8 @@ impl<'a> Parser<'a> {
                         *next = self.lexer.next().transpose()?;
                         Ok(function_to_expr(s, left, right))
                     } else {
-                        Err(SyntaxError::new(Unmatched(""), pos.start))
+                        let bracket = self.input[pos.start..pos.end].to_owned();
+                        Err(SyntaxError::new(Unmatched(bracket), pos.start))
                     }
                 },
                 Some(arity) => unreachable!(
