@@ -359,7 +359,7 @@ foo = [bar][as^3];
         assert_eq!(p.next().unwrap().unwrap().0, Static(Times));
         let slice: &[u8] = b"[this is\n*not a comment]";
         assert_eq!(p.next().unwrap().unwrap().0, Symbol(slice));
-        assert_matches!(p.next().unwrap(), Err(_));
+        assert!(matches!(p.next().unwrap(), Err(_)));
 
         assert_eq!(p.next(), None);
 

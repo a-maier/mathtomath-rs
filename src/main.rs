@@ -7,10 +7,6 @@ extern crate maplit;
 #[macro_use]
 extern crate phf;
 
-#[cfg(test)]
-#[macro_use]
-extern crate assert_matches;
-
 mod error;
 mod expression;
 mod arity;
