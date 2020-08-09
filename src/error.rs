@@ -34,14 +34,13 @@ impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ErrorKind::*;
         match self.kind {
-            EarlyEOF(s) => write!(f, "unexpected end of expression, expected {}", s)?,
-            ExpectLeft(s) | ExpectNull(s) => write!(f, "unexpected token, expected {}", s)?,
-            NotAToken => write!(f, "unknown token")?,
-            Unmatched(ref b) => write!(f, "unmatched bracket {}", b)?,
-            Utf8Error(err) => write!(f, "utf8 conversion error: {}", err)?,
-            RemainingToken => write!(f, "remaining text after parsing expression")?,
-        };
-        write!(f, " at position {}", self.pos())
+            EarlyEOF(s) => write!(f, "unexpected end of expression, expected {}", s),
+            ExpectLeft(s) | ExpectNull(s) => write!(f, "unexpected token, expected {}", s),
+            NotAToken => write!(f, "unknown token"),
+            Unmatched(ref b) => write!(f, "unmatched bracket {}", b),
+            Utf8Error(err) => write!(f, "utf8 conversion error: {}", err),
+            RemainingToken => write!(f, "remaining text after parsing expression"),
+        }
     }
 }
 
