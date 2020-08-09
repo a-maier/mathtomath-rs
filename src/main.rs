@@ -17,11 +17,12 @@ use expression::Expression;
 use error::{Error, ParseError, SyntaxError};
 use subslice::SubsliceExt;
 use std::{
-    io::{self, Read, Write},
+    io::{self, Read},
     fs::File,
     path::PathBuf,
     str::from_utf8,
 };
+use ansi_term::Colour::Red;
 use clap::arg_enum;
 use structopt::StructOpt;
 use unicode_segmentation::UnicodeSegmentation;
@@ -117,11 +118,11 @@ fn main() {
         eprintln!("{}", err);
         if let Error::Parse(err) = err {
             if let Some((before, after)) = err.context {
-                use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
-                let mut stderr = StandardStream::stderr(ColorChoice::Always);
-                let _ = write!(&mut stderr, " Here in input expression: {}", before);
-                stderr.set_color(ColorSpec::new().set_fg(Some(Color::Red))).unwrap();
-                let _ = writeln!(&mut stderr, "{}", after);
+                eprintln!(
+                    " Here in input expression: {}{}",
+                    before,
+                    Red.bold().paint(after)
+                )
             }
         }
         1
