@@ -54,13 +54,20 @@ impl std::convert::From<str::Utf8Error> for SyntaxError {
 }
 
 #[derive(Clone,Eq,PartialEq,Debug)]
+pub struct Context {
+    pub line: usize,
+    pub before: String,
+    pub after: String,
+}
+
+#[derive(Clone,Eq,PartialEq,Debug)]
 pub struct ParseError{
-    pub context: Option<(String, String)>,
+    pub context: Option<Context>,
     err: SyntaxError,
 }
 
 impl ParseError {
-    pub fn new(context: Option<(String, String)>, err: SyntaxError) -> Self {
+    pub fn new(context: Option<Context>, err: SyntaxError) -> Self {
         ParseError{context, err}
     }
 }

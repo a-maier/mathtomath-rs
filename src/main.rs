@@ -14,7 +14,7 @@ mod formats;
 mod range;
 
 use expression::Expression;
-use error::{Error, ParseError, SyntaxError};
+use error::{Context, Error, ParseError, SyntaxError};
 use subslice::SubsliceExt;
 use std::{
     io::{self, Read},
@@ -67,19 +67,16 @@ fn read_expression(filepath: &Option<PathBuf>) -> io::Result<Vec<u8>> {
     Ok(input)
 }
 
-
-static CONTEXT_SIZE: usize = 10;
-
-fn get_context(input: &[u8], pos: usize) -> Option<(String, String)> {
+fn get_context(input: &[u8], pos: usize) -> Option<Context> {
     let (before, after) = input.split_at(pos);
-    let before = from_utf8(before).ok()?;
-    let after = from_utf8(after).ok()?;
+    let line = before.iter().filter(|&&c| c == b'\n').count() + 1;
+    let before: Vec<u8> = before.into_iter().rev().take_while(|&&c| c != b'\n').copied().collect();
+    let before: Vec<u8> = before.into_iter().rev().collect();
+    let before = from_utf8(&before).ok()?.to_owned();
+    let after: Vec<_> = after.into_iter().take_while(|&&c| c != b'\n').copied().collect();
+    let after = from_utf8(&after).ok()?.to_owned();
 
-    let before: Vec<&str> = UnicodeSegmentation::graphemes(before, true).collect();
-    let before = before.into_iter().rev().take(CONTEXT_SIZE).rev().collect();
-    let after = UnicodeSegmentation::graphemes(after, true)
-        .take(CONTEXT_SIZE).collect();
-    Some((before, after))
+    Some(Context{line, before, after})
 }
 
 fn parse<'a>(
@@ -117,11 +114,12 @@ fn main() {
 
         eprintln!("{}", err);
         if let Error::Parse(err) = err {
-            if let Some((before, after)) = err.context {
+            if let Some(context) = err.context {
                 eprintln!(
-                    " Here in input expression: {}{}",
-                    before,
-                    Red.bold().paint(after)
+                    " In line {} in input expression: {}{}",
+                    context.line,
+                    context.before,
+                    Red.bold().paint(context.after)
                 )
             }
         }
