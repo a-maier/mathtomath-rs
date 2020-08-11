@@ -25,7 +25,6 @@ use std::{
 use ansi_term::Colour::Red;
 use clap::arg_enum;
 use structopt::StructOpt;
-use unicode_segmentation::UnicodeSegmentation;
 
 arg_enum! {
     #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
