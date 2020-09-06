@@ -6,7 +6,7 @@ use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::*;
 use crate::range::Range;
 
-pub fn parse<'a>(input: &'a [u8]) -> Result<Expression<'a>, SyntaxError> {
+pub fn parse(input: &[u8]) -> Result<Expression<'_>, SyntaxError> {
     let mut parser = Parser::new(input);
     parser.parse()
 }
@@ -17,7 +17,7 @@ struct Parser<'a> {
     input: &'a [u8],
 }
 
-const LEFT_TOKENS: &'static str =
+const LEFT_TOKENS: &str =
     "'+', '-' , '*', '/', '^', '.', '=', ',', ';', '?', '(', or '['";
 
 impl<'a> Parser<'a> {
@@ -76,7 +76,7 @@ impl<'a> Parser<'a> {
                 Token::Integer(int) => Ok(Nullary(Integer(int))),
                 Token::Static(s) => {
                     match NULL_ARITY.get(&s) {
-                        Some(Arity::Nullary) => Ok(Nullary(TOKEN_EXPRESSION[&s].clone())),
+                        Some(Arity::Nullary) => Ok(Nullary(TOKEN_EXPRESSION[&s])),
                         Some(Arity::Unary) => if let Some(closing) = CLOSING_BRACKET.get(&s) {
                             // this is actually a bracket
                             let arg = self.parse_with(next, 0)?;
@@ -160,7 +160,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-fn left_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
+fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
     debug!("look up left binding power of {:?}", token);
     use Token::*;
     if let Some((token, _pos)) = token {
@@ -174,7 +174,7 @@ fn left_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
     }
 }
 
-fn null_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
+fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
     debug!("look up null binding power of {:?}", token);
     let tok = token.as_ref().map(|(t, _pos)| t);
     match tok {

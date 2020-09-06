@@ -7,7 +7,7 @@ use crate::expression::*;
 use crate::arity::Arity;
 use crate::range::Range;
 
-pub fn parse<'a>(input: &'a str) -> Result<Expression<'a>, SyntaxError> {
+pub fn parse(input: &str) -> Result<Expression<'_>, SyntaxError> {
     let mut parser = Parser::new(&input);
     parser.parse()
 }
@@ -18,7 +18,7 @@ struct Parser<'a> {
     input: &'a str,
 }
 
-const LEFT_TOKENS: &'static str =
+const LEFT_TOKENS: &str =
     "a postfix operator, a binary operator, or an opening bracket";
 
 impl<'a> Parser<'a> {
@@ -92,7 +92,7 @@ impl<'a> Parser<'a> {
                     use Arity::*;
                     match NULL_ARITY.get(&s) {
                         Some(Nullary) => Ok(
-                            Expression::Nullary(TOKEN_EXPRESSION[&s].clone())
+                            Expression::Nullary(TOKEN_EXPRESSION[&s])
                         ),
                         Some(Unary) => if let Some(closing) = CLOSING_BRACKET.get(&s) {
                             // this is actually a bracket
@@ -173,7 +173,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-fn left_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
+fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
     debug!("look up left binding power of {:?}", token);
     use Token::*;
     if let Some((token, _pos)) = token {
@@ -183,12 +183,10 @@ fn left_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
             Static(other) => {
                 if let Some(prec) = TOKEN_PREC.get(&other) {
                     *prec
+                } else if UNKNOWN_TOKEN_PREC.contains(&other) {
+                    panic!("Internal error: unknown precedence of token {:?}", other)
                 } else {
-                    if UNKNOWN_TOKEN_PREC.contains(&other) {
-                        panic!("Internal error: unknown precedence of token {:?}", other)
-                    } else {
-                        unreachable!("Internal error: token {:?}", other)
-                    }
+                    unreachable!("Internal error: token {:?}", other)
                 }
             },
             _ => unimplemented!(),
@@ -198,7 +196,7 @@ fn left_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
     }
 }
 
-fn null_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
+fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
     debug!("look up null binding power of {:?}", token);
     if let Some((tok, _pos)) = token {
         match tok {
@@ -214,10 +212,10 @@ fn null_binding_power<'a>(token: Option<(Token<'a>, Range<usize>)>) -> u32 {
     }
 }
 
-fn bracket_to_expr<'a>(
+fn bracket_to_expr(
     opening: StaticToken,
-    arg: Expression<'a>
-) -> Expression<'a> {
+    arg: Expression<'_>
+) -> Expression<'_> {
     use Expression::Unary;
     use UnaryOp::*;
     let op = match opening {
@@ -232,10 +230,10 @@ fn bracket_to_expr<'a>(
     Unary(op, Box::new(arg))
 }
 
-fn prefix_op_to_expr<'a>(
+fn prefix_op_to_expr(
     op: StaticToken,
-    arg: Expression<'a>
-) -> Expression<'a> {
+    arg: Expression<'_>
+) -> Expression<'_> {
     if op == StaticToken::Sqrt {
         Expression::Binary(BinaryOp::Function, Box::new((
             Expression::Nullary(NullaryOp::Sqrt), arg
@@ -248,10 +246,10 @@ fn prefix_op_to_expr<'a>(
     }
 }
 
-fn postfix_op_to_expr<'a>(
+fn postfix_op_to_expr(
     op: StaticToken,
-    arg: Expression<'a>
-) -> Expression<'a> {
+    arg: Expression<'_>
+) -> Expression<'_> {
     let op = *POSTFIX_OP_TO_EXPR.get(&op).expect(
         "Internal error: postfix operator to expression"
     );

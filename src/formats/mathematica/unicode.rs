@@ -2,9 +2,9 @@ use std::{borrow::Cow, str};
 use regex::bytes;
 
 // replace \[...] by unicode characters
-pub fn mathematica_to_utf8<'a>(
-    text: &'a [u8]
-) -> Result<Cow<'a, [u8]>, str::Utf8Error> {
+pub fn mathematica_to_utf8(
+    text: &[u8]
+) -> Result<Cow<'_, [u8]>, str::Utf8Error> {
     debug!("replace special mathematica characters by utf8");
 
     let re = bytes::Regex::new(r"\\\[(\w+)\]").unwrap();

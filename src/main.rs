@@ -69,19 +69,19 @@ fn read_expression(filepath: &Option<PathBuf>) -> io::Result<Vec<u8>> {
 fn get_context(input: &[u8], pos: usize) -> Option<Context> {
     let (before, after) = input.split_at(pos);
     let line = before.iter().filter(|&&c| c == b'\n').count() + 1;
-    let before: Vec<u8> = before.into_iter().rev().take_while(|&&c| c != b'\n').copied().collect();
+    let before: Vec<u8> = before.iter().rev().take_while(|&&c| c != b'\n').copied().collect();
     let before: Vec<u8> = before.into_iter().rev().collect();
     let before = from_utf8(&before).ok()?.to_owned();
-    let after: Vec<_> = after.into_iter().take_while(|&&c| c != b'\n').copied().collect();
+    let after: Vec<_> = after.iter().take_while(|&&c| c != b'\n').copied().collect();
     let after = from_utf8(&after).ok()?.to_owned();
 
     Some(Context{line, before, after})
 }
 
-fn parse<'a>(
-    input: &'a [u8],
+fn parse(
+    input: &[u8],
     format: Format
-) -> Result<Expression<'a>, ParseError> {
+) -> Result<Expression<'_>, ParseError> {
     use Format::*;
     info!("parsing in format {:?}", format);
     let res = match format {
@@ -148,6 +148,6 @@ fn run() -> Result<(), Error> {
         parse(&input, opt.informat)?
     };
     write_expression(expression, opt.outformat)?;
-    println!("");
+    println!();
     Ok(())
 }

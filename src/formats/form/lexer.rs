@@ -155,10 +155,10 @@ fn operator_or_bracket(i: &[u8]) -> IResult<&[u8], &[u8]> {
     } else {
         // we have to change the return type from char to &[u8]
         // otherwise a simple alt combinator would do
-        one_of("*+-/^.?,=;(){}[]")(i).and_then(
+        one_of("*+-/^.?,=;(){}[]")(i).map(
             |_| {
                 trace!("parsed {}", i[0]);
-                Ok(reverse(i.split_at(1)))
+                reverse(i.split_at(1))
             }
         )
     }

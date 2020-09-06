@@ -31,7 +31,7 @@ fn format<W: io::Write>(
     }
     use ExpressionKind::*;
     match prop.kind {
-        Empty => {()},
+        Empty => (),
         Symbol(sym) => {
             if is_symbol(sym) {
                 w.write_all(sym)?;

@@ -4,28 +4,28 @@ use super::lexer::{self, StaticToken};
 use crate::expression::*;
 use crate::arity::Arity;
 
-pub(crate) fn bracket_to_expr<'a>(
+pub(crate) fn bracket_to_expr(
     opening: StaticToken,
-    arg: Expression<'a>
-) -> Expression<'a> {
+    arg: Expression<'_>
+) -> Expression<'_> {
     debug_assert_eq!(opening, StaticToken::LeftBracket);
     Expression::Unary(UnaryOp::Bracket, Box::new(arg))
 }
 
-pub(crate) fn prefix_op_to_expr<'a>(
+pub(crate) fn prefix_op_to_expr(
     op: StaticToken,
-    arg: Expression<'a>
-) -> Expression<'a> {
+    arg: Expression<'_>
+) -> Expression<'_> {
     let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
         "Internal error: prefix operator to expression"
     );
     Expression::Unary(op, Box::new(arg))
 }
 
-pub(crate) fn postfix_op_to_expr<'a>(
+pub(crate) fn postfix_op_to_expr(
     op: StaticToken,
-    arg: Expression<'a>
-) -> Expression<'a> {
+    arg: Expression<'_>
+) -> Expression<'_> {
     debug_assert_eq!(op, StaticToken::Wildcard);
     Expression::Unary(UnaryOp::Wildcard, Box::new(arg))
 }
