@@ -9,7 +9,7 @@ pub(crate) fn bracket_to_expr<'a>(
     arg: Expression<'a>
 ) -> Expression<'a> {
     debug_assert_eq!(opening, StaticToken::LeftBracket);
-    arg
+    Expression::Unary(UnaryOp::Bracket, Box::new(arg))
 }
 
 pub(crate) fn prefix_op_to_expr<'a>(

@@ -220,15 +220,16 @@ fn bracket_to_expr<'a>(
 ) -> Expression<'a> {
     use Expression::Unary;
     use UnaryOp::*;
-    match opening {
-        StaticToken::LeftAngleBracket  => Unary(Angle, Box::new(arg)),
-        StaticToken::LeftAssociation   => Unary(Association, Box::new(arg)),
-        StaticToken::LeftBracket       => arg,
-        StaticToken::LeftCeiling       => Unary(Ceiling, Box::new(arg)),
-        StaticToken::LeftFloor         => Unary(Floor, Box::new(arg)),
-        StaticToken::LeftList          => Unary(List, Box::new(arg)),
+    let op = match opening {
+        StaticToken::LeftAngleBracket  => Angle,
+        StaticToken::LeftAssociation   => Association,
+        StaticToken::LeftBracket       => Bracket,
+        StaticToken::LeftCeiling       => Ceiling,
+        StaticToken::LeftFloor         => Floor,
+        StaticToken::LeftList          => List,
         _ => panic!("Internal error: {:?} is not a bracket", opening)
-    }
+    };
+    Unary(op, Box::new(arg))
 }
 
 fn prefix_op_to_expr<'a>(

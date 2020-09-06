@@ -160,6 +160,7 @@ fn properties(
             unknown => (PREC_ATOM, UnknownNullary(unknown)),
         },
         Unary(unary, arg) => match unary {
+            UnaryOp::Bracket => (PREC_LEFT_BRACKET, Circumfix(b"(",*arg,b")")),
             UnaryOp::Wildcard => (PREC_ATOM, Postfix(*arg, b"?")),
             UnaryOp::Many0Wildcard => (PREC_ATOM, Prefix(b"?", *arg)),
             UnaryOp::UPlus => (PREC_UPLUS, Prefix(b"+",*arg)),

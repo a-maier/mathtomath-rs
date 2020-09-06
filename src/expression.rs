@@ -44,6 +44,7 @@ pub enum NullaryOp<'a> {
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 pub enum UnaryOp {
+    Bracket,
     Wildcard,
     ManyWildcard,
     Many0Wildcard,

@@ -349,6 +349,7 @@ mod tests {
         log_init();
         use Expression::*;
         use NullaryOp::*;
+        use UnaryOp::*;
         use BinaryOp::*;
 
         let a: &[u8] = b"a";
@@ -356,17 +357,17 @@ mod tests {
         let int: &[u8] = b"1";
 
         let expr: &[u8] = b" ( a + 1 )";
-        let res = Binary(Plus, Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))));
+        let res = Unary(Bracket, Box::new(Binary(Plus, Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))))));
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + (1 - b)";
-        let res = Binary(Plus, Box::new((Nullary(Symbol(a)), Binary(Minus, Box::new((Nullary(Integer(int)), Nullary(Symbol(b))))))));
+        let res = Binary(Plus, Box::new((Nullary(Symbol(a)), Unary(Bracket, Box::new(Binary(Minus, Box::new((Nullary(Integer(int)), Nullary(Symbol(b))))))))));
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" (a * 1) ^ b";
-        let res = Binary(Power, Box::new((Binary(Times, Box::new((Nullary(Symbol(a)), Nullary(Integer(int))))), Nullary(Symbol(b)))));
+        let res = Binary(Power, Box::new((Unary(Bracket, Box::new(Binary(Times, Box::new((Nullary(Symbol(a)), Nullary(Integer(int))))))), Nullary(Symbol(b)))));
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
     }
