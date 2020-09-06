@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use super::lexer::{self, StaticToken};
 use crate::expression::*;
 use crate::arity::Arity;
+use crate::assoc::Assoc;
+use crate::error::ErrorKind;
 
 pub(crate) fn bracket_to_expr(
     opening: StaticToken,
@@ -49,11 +51,25 @@ pub(crate) fn binary_op_to_expr<'a>(
     op: StaticToken,
     left: Expression<'a>,
     right: Expression<'a>,
-) -> Expression<'a> {
+) -> Result<Expression<'a>, ErrorKind> {
+    use Expression::Binary;
     let op = *BINARY_OP_TO_EXPR.get(&op).expect(
         "Internal error: postfix operator to expression"
     );
-    Expression::Binary(op, Box::new((left, right)))
+    match assoc(op) {
+        Assoc::None => if let Binary(left_op, left_args) = left {
+            if left_op == op {
+                return Err(ErrorKind::NonAssocOpChain);
+            } else {
+                // restore left arg
+                let left = Binary(left_op, left_args);
+                return Ok(Binary(op, Box::new((left, right))));
+            }
+        },
+        Assoc::Left => {},
+        Assoc::Right => unreachable!()
+    }
+    Ok(Expression::Binary(op, Box::new((left, right))))
 }
 
 pub const PREC_SYMBOL: u32 = 0;
@@ -186,4 +202,12 @@ lazy_static! {
         StaticToken::ATanh => NullaryOp::ATanh,
         StaticToken::Sqrt => NullaryOp::Sqrt,
     };
+}
+
+pub fn assoc(op: BinaryOp) -> Assoc {
+    use Assoc::*;
+    match op {
+        BinaryOp::Power | BinaryOp::Dot => None,
+        _ => Left
+    }
 }

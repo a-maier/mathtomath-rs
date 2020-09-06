@@ -295,6 +295,7 @@ fn binary_op_to_expr<'a>(
                 }
             },
         Assoc::Left => {},
+        Assoc::None => unreachable!(),
     };
     Binary(op, Box::new((left, right)))
 }

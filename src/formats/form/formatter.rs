@@ -1,5 +1,6 @@
 use super::grammar::*;
 use crate::expression::*;
+use crate::assoc::Assoc;
 
 use std::io;
 
@@ -169,6 +170,18 @@ fn properties(
         },
         Binary(binary, args) => {
             let (left, right) = *args;
+            match assoc(binary) {
+                Assoc::Right | Assoc::None =>
+                    if let Binary(left_op, _) = left {
+                        if left_op == binary {
+                            let left = Expression::Unary(UnaryOp::Bracket, Box::new(left));
+                            return properties(
+                                Expression::Binary(binary, Box::new((left, right)))
+                            );
+                        }
+                    },
+                Assoc::Left => { },
+            };
             match binary {
                 BinaryOp::Plus => (PREC_PLUS, Infix(left, b"+", right)),
                 BinaryOp::Minus => (PREC_MINUS, Infix(left, b"-", right)),

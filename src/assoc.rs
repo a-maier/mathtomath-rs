@@ -2,5 +2,5 @@
 pub enum Assoc {
     Left,
     Right,
-    //None
+    None,
 }

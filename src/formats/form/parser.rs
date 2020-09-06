@@ -125,7 +125,9 @@ impl<'a> Parser<'a> {
                 Some(Binary) => {
                     let right_binding_power = left_binding_power(token);
                     let right = self.parse_with(next, right_binding_power)?;
-                    Ok(binary_op_to_expr(s, left, right))
+                    binary_op_to_expr(s, left, right).map_err(
+                        |e| SyntaxError::new(e, pos.start)
+                    )
                 },
                 Some(Function) => {
                     let next_token = next.as_ref().map(|(t, _pos)| t);

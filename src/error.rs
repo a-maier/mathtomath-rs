@@ -11,6 +11,7 @@ pub enum ErrorKind {
     EarlyEOF(&'static str),
     ExpectLeft(&'static str),
     ExpectNull(&'static str),
+    NonAssocOpChain,
     NotAToken,
     Unmatched(String),
     Utf8Error(str::Utf8Error),
@@ -40,6 +41,7 @@ impl fmt::Display for SyntaxError {
             Unmatched(ref b) => write!(f, "unmatched bracket {}", b),
             Utf8Error(err) => write!(f, "utf8 conversion error: {}", err),
             RemainingToken => write!(f, "remaining text after parsing expression"),
+            NonAssocOpChain => write!(f, "chaining of non-associative operator"),
         }
     }
 }

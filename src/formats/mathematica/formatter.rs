@@ -220,7 +220,7 @@ fn properties(
         Binary(binary, args) => {
             let (left, right) = *args;
             match assoc(binary) {
-                Assoc::Right =>
+                Assoc::Right | Assoc::None =>
                     if let Binary(left_op, _) = left {
                         if left_op == binary {
                             let left = Expression::Unary(UnaryOp::Bracket, Box::new(left));
