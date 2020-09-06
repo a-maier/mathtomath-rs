@@ -10,6 +10,7 @@ extern crate phf;
 mod error;
 mod expression;
 mod arity;
+mod assoc;
 mod formats;
 mod range;
 

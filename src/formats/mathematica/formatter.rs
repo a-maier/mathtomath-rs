@@ -1,4 +1,5 @@
 use super::grammar::*;
+use crate::assoc::Assoc;
 use crate::expression::*;
 
 use std::io;
@@ -63,7 +64,6 @@ fn format<W: io::Write>(
             w.write_all(op.as_bytes())?;
         },
         Infix(left_arg, op, right_arg) => {
-            // TODO: this assumes left-associativity
             let left_arg = properties(left_arg);
             let left_arg_prec = left_arg.prec;
             format(w, left_arg, left_arg_prec < prec)?;
@@ -219,6 +219,18 @@ fn properties(
         },
         Binary(binary, args) => {
             let (left, right) = *args;
+            match assoc(binary) {
+                Assoc::Right =>
+                    if let Binary(left_op, _) = left {
+                        if left_op == binary {
+                            let left = Expression::Unary(UnaryOp::Bracket, Box::new(left));
+                            return properties(
+                                Expression::Binary(binary, Box::new((left, right)))
+                            );
+                        }
+                    },
+                Assoc::Left => { },
+            };
             match binary {
                 BinaryOp::Plus => (PREC_PLUS, Infix(left, "+", right)),
                 BinaryOp::Minus => (PREC_MINUS, Infix(left, "-", right)),

@@ -4,6 +4,7 @@ use super::lexer::Lexer;
 use super::tokens::{Token, StaticToken, TOKEN_PREC, TOKEN_EXPRESSION, UNKNOWN_TOKEN_PREC, NULL_ARITY, LEFT_ARITY, CLOSING_BRACKET, PREFIX_OP_TO_EXPR, POSTFIX_OP_TO_EXPR, BINARY_OP_TO_EXPR};
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::*;
+use crate::assoc::Assoc;
 use crate::arity::Arity;
 use crate::range::Range;
 
@@ -276,8 +277,24 @@ fn binary_op_to_expr<'a>(
     left: Expression<'a>,
     right: Expression<'a>,
 ) -> Expression<'a> {
+    use Expression::Binary;
     let op = *BINARY_OP_TO_EXPR.get(&op).expect(
         "Internal error: postfix operator to expression"
     );
-    Expression::Binary(op, Box::new((left, right)))
+    match assoc(op) {
+        Assoc::Right =>
+            if let Binary(left_op, left_args) = left {
+                if left_op == op {
+                    let (leftmost, middle) = *left_args;
+                    let right = Binary(op, Box::new((middle, right)));
+                    return Binary(op, Box::new((leftmost, right)));
+                } else {
+                    // restore left arg
+                    let left = Binary(left_op, left_args);
+                    return Binary(op, Box::new((left, right)));
+                }
+            },
+        Assoc::Left => {},
+    };
+    Binary(op, Box::new((left, right)))
 }

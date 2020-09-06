@@ -1,6 +1,8 @@
 use super::lexer;
 
 use std::str;
+use crate::assoc::Assoc;
+use crate::expression::BinaryOp;
 
 // obtained from Mathematica 12.0:
 //
@@ -204,5 +206,13 @@ pub fn is_symbol(i: &[u8]) -> bool {
         }
     } else {
         false
+    }
+}
+
+pub fn assoc(op: BinaryOp) -> Assoc {
+    use Assoc::*;
+    match op {
+        BinaryOp::Power => Right,
+        _ => Left
     }
 }
