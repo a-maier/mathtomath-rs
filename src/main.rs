@@ -31,6 +31,7 @@ arg_enum! {
     #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
     enum Format {
         Form,
+        Latex,
         Mathematica,
     }
 }
@@ -91,6 +92,7 @@ fn parse(
             Ok(input) => formats::mathematica::parser::parse(input),
             Err(err) => Err(SyntaxError::from(err))
         },
+        Latex => unimplemented!(),
     };
     res.map_err(|err| ParseError::new(get_context(input, err.pos()), err))
 }
@@ -105,7 +107,8 @@ fn write_expression(
     let mut handle = stdout.lock();
     match format {
         Form => formats::form::formatter::Formatter::new(expr).format(&mut handle),
-        Mathematica => formats::mathematica::formatter::Formatter::new(expr).format(&mut handle)
+        Mathematica => formats::mathematica::formatter::Formatter::new(expr).format(&mut handle),
+        Latex => formats::latex::formatter::Formatter::new(expr).format(&mut handle),
     }
 }
 
