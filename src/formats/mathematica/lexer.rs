@@ -82,6 +82,7 @@ fn builtin(i: &str) -> Option<(Token<'static>, usize)>  {
 pub(crate) struct Lexer<'a> {
     remaining_input: &'a str,
     pos: usize,
+    open_part_brackets: u64,
 }
 
 impl<'a> Lexer<'a> {
@@ -89,6 +90,7 @@ impl<'a> Lexer<'a> {
         Lexer{
             remaining_input: input,
             pos: 0,
+            open_part_brackets: 0,
         }
     }
 
@@ -126,7 +128,23 @@ impl<'a> Lexer<'a> {
             self.parse_success(token, remaining_input);
             return Some(Ok(Token::String(token.as_bytes())))
         }
-        if let Some((token, token_str_len)) = builtin(self.remaining_input) {
+        if let Some((mut token, mut token_str_len)) = builtin(self.remaining_input) {
+            if token == Token::Static(StaticToken::LeftPart) {
+                self.open_part_brackets += 1;
+                debug!("Opening Part brackets, now {}", self.open_part_brackets);
+            } else if token == Token::Static(StaticToken::RightPart) {
+                debug!("{} open Part brackets", self.open_part_brackets);
+                if self.open_part_brackets > 0 {
+                    self.open_part_brackets -= 1;
+                } else {
+                    // we are not inside a Part bracket,
+                    // so this is actually two closing square brackets
+                    // and not a single token
+                    token = Token::Static(StaticToken::RightSquareBracket);
+                    debug_assert_eq!(token_str_len, 2);
+                    token_str_len = 1;
+                }
+            }
             let (token_str, rest) = self.remaining_input.split_at(token_str_len);
             self.parse_success(token_str, rest);
             return Some(Ok(token))
@@ -176,7 +194,7 @@ mod tests {
         use Token::*;
         use StaticToken::*;
 
-            let expr =
+        let expr =
             r#" + 35 - "iπs\"[a]f]"_.q / den[4*a^-3, $a[[1]]] + ln[x1,x6];
 (* [ this is a comment
 *)
@@ -240,6 +258,26 @@ foo = 〈as^.238〉;
 
         let mut p = Lexer::for_input("+ ");
         assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
+        assert_eq!(p.next(), None);
+    }
+
+    #[test]
+    fn tst_part() {
+        log_init();
+
+        use Token::*;
+        use StaticToken::*;
+
+        let mut p = Lexer::for_input("[[]]");
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftPart));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightPart));
+        assert_eq!(p.next(), None);
+
+        let mut p = Lexer::for_input("[ []]");
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftSquareBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(LeftSquareBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightSquareBracket));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(RightSquareBracket));
         assert_eq!(p.next(), None);
     }
 }
