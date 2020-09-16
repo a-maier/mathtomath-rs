@@ -66,7 +66,7 @@ fn whitespace(i: &str) -> IResult<&str, &str> {
 }
 
 fn builtin(i: &str) -> Option<(Token<'static>, usize)>  {
-    let boundaries: Vec<_> = (1..i.len()).filter(
+    let boundaries: Vec<_> = (1..=i.len()).filter(
         |pos| i.is_char_boundary(*pos)
     ).take(MAX_TOKEN_STR_LEN).collect(); // can't reverse a filter iterator
     for & token_str_len in boundaries.iter().rev() {
