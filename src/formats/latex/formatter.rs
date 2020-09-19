@@ -3,6 +3,7 @@ use crate::assoc::Assoc;
 use crate::expression::*;
 
 use std::io;
+use std::collections::HashMap;
 
 pub type Result = std::result::Result<(), std::io::Error>;
 
@@ -71,7 +72,9 @@ impl Printer {
                 w.write_all(b"}")?;
             },
             Symbol(s) => {
-                if s.first() == Some(&b'\\') || s.len() == 1 {
+                if let Some(s) = LATEX_SYMBOLS.get(s) {
+                    w.write_all(s)?
+                } else if s.first() == Some(&b'\\') || s.len() == 1 {
                     w.write_all(s)?
                 } else {
                     w.write_all(b"\\text{")?;
@@ -298,4 +301,58 @@ fn remove_bracket(expr: Expression<'_>) -> Expression<'_> {
     } else {
         expr
     }
+}
+
+lazy_static! {
+    pub(crate) static ref LATEX_SYMBOLS: HashMap<&'static [u8], &'static [u8]> = hashmap!{
+        "α".as_bytes() => b"\\alpha" as &'static [u8],
+        "β".as_bytes() => b"\\beta",
+        "γ".as_bytes() => b"\\gamma",
+        "δ".as_bytes() => b"\\delta",
+        "ε".as_bytes() => b"\\epsilon",
+        "ζ".as_bytes() => b"\\zeta",
+        "η".as_bytes() => b"\\eta",
+        "θ".as_bytes() => b"\\theta",
+        "ι".as_bytes() => b"\\iota",
+        "κ".as_bytes() => b"\\kappa",
+        "λ".as_bytes() => b"\\lambda",
+        "μ".as_bytes() => b"\\mu",
+        "ν".as_bytes() => b"\\nu",
+        "ξ".as_bytes() => b"\\xi",
+        "ο".as_bytes() => b"\\omicron",
+        "π".as_bytes() => b"\\pi",
+        "ρ".as_bytes() => b"\\rho",
+        "σ".as_bytes() => b"\\sigma",
+        "τ".as_bytes() => b"\\tau",
+        "υ".as_bytes() => b"\\upsilon",
+        "φ".as_bytes() => b"\\phi",
+        "χ".as_bytes() => b"\\chi",
+        "ψ".as_bytes() => b"\\psi",
+        "ω".as_bytes() => b"\\omega",
+
+        "Α".as_bytes() => b"\\Alpha",
+        "Β".as_bytes() => b"\\Beta",
+        "Γ".as_bytes() => b"\\Gamma",
+        "Δ".as_bytes() => b"\\Delta",
+        "Ε".as_bytes() => b"\\Epsilon",
+        "Ζ".as_bytes() => b"\\Zeta",
+        "θ".as_bytes() => b"\\Theta",
+        "Η".as_bytes() => b"\\Eta",
+        "Ι".as_bytes() => b"\\Iota",
+        "Κ".as_bytes() => b"\\Kappa",
+        "Λ".as_bytes() => b"\\Lambda",
+        "Μ".as_bytes() => b"\\Mu",
+        "Ν".as_bytes() => b"\\Nu",
+        "Ξ".as_bytes() => b"\\Xi",
+        "Ο".as_bytes() => b"\\Omicron",
+        "Π".as_bytes() => b"\\Pi",
+        "Ρ".as_bytes() => b"\\Rho",
+        "Σ".as_bytes() => b"\\Sigma",
+        "Τ".as_bytes() => b"\\Tau",
+        "Υ".as_bytes() => b"\\Upsilon",
+        "Φ".as_bytes() => b"\\Phi",
+        "Χ".as_bytes() => b"\\Chi",
+        "Ψ".as_bytes() => b"\\Psi",
+        "Ω".as_bytes() => b"\\Omega",
+    };
 }
