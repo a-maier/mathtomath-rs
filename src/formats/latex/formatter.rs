@@ -271,7 +271,7 @@ fn properties(
             match binary {
                 BinaryOp::Plus => (PREC_PLUS, Infix(left, b"+", right)),
                 BinaryOp::Minus => (PREC_MINUS, Infix(left, b"-", right)),
-                BinaryOp::Times => (PREC_TIMES, Infix(left, b"*", right)),
+                BinaryOp::Times => (PREC_TIMES, Infix(left, b"\\*", right)),
                 BinaryOp::Divide => (PREC_DIVIDE, Frac(b"\\frac{", left, b"}{", right, b"}")),
                 BinaryOp::Compound => (PREC_COMPOUND_EXPRESSION, Infix(left, b";", right)),
                 BinaryOp::Sequence => (PREC_SEQUENCE, Infix(left, b",", right)),
