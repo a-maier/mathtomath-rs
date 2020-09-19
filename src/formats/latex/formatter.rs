@@ -23,19 +23,19 @@ impl<'a> Formatter<'a> {
 }
 
 struct Printer{
-    inside_frac: bool,
+    inside_sub_or_super: bool,
 }
 
 impl Printer {
     fn new() -> Self {
         Printer{
-            inside_frac: false
+            inside_sub_or_super: false
         }
     }
 
-    fn inside_frac() -> Self {
+    fn inside_sub_or_super() -> Self {
         Printer{
-            inside_frac: false
+            inside_sub_or_super: false
         }
     }
 
@@ -119,10 +119,10 @@ impl Printer {
             Frac(head, num, sep, den, term) => {
                 w.write_all(head)?;
                 let num = remove_bracket(num);
-                Self::inside_frac().format(w, properties(num), false)?;
+                Self::inside_sub_or_super().format(w, properties(num), false)?;
                 w.write_all(sep)?;
                 let den = remove_bracket(den);
-                Self::inside_frac().format(w, properties(den), false)?;
+                Self::inside_sub_or_super().format(w, properties(den), false)?;
                 w.write_all(term)?;
             },
             UnknownNullary(sym) => {
