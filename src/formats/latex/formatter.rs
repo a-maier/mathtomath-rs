@@ -92,6 +92,16 @@ impl Printer {
                 self.format(w, arg, arg_prec < prec)?;
                 w.write_all(op)?;
             },
+            Infix(left_arg, b"^", right_arg) => {
+                let left_arg = properties(left_arg);
+                let left_arg_prec = left_arg.prec;
+                w.write_all(b"{")?;
+                self.format(w, left_arg, left_arg_prec < prec)?;
+                w.write_all(b"}^{")?;
+                let right_arg = properties(right_arg);
+                Self::inside_sub_or_super().format(w, right_arg, false)?;
+                w.write_all(b"}")?;
+            },
             Infix(left_arg, op, right_arg) => {
                 let left_arg = properties(left_arg);
                 let left_arg_prec = left_arg.prec;
