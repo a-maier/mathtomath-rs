@@ -332,6 +332,8 @@ pub(crate) enum StaticToken {
     ArcSinh,
     ArcCosh,
     ArcTanh,
+    Subscript,
+    Superscript,
 }
 
 // STR_TO_TOKEN.keys().map(|k| k.chars().count()).max().unwrap();
@@ -700,6 +702,8 @@ pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static str, StaticToken> = phf_map!{
     "ArcSinh" => StaticToken::ArcSinh,
     "ArcCosh" => StaticToken::ArcCosh,
     "ArcTanh" => StaticToken::ArcTanh,
+    "Subscript" => StaticToken::Subscript,
+    "Superscript" => StaticToken::Superscript,
     "Sqrt" => StaticToken::Sqrt,
 };
 
@@ -1078,6 +1082,8 @@ lazy_static! {
         StaticToken::ArcCosh => Arity::Nullary,
         StaticToken::ArcTanh => Arity::Nullary,
         StaticToken::Sqrt => Arity::Nullary,
+        StaticToken::Subscript => Arity::Nullary,
+        StaticToken::Superscript => Arity::Nullary,
 
         // brackets
         StaticToken::LeftAngleBracket => Arity::Unary,
@@ -1422,6 +1428,8 @@ lazy_static! {
         StaticToken::ArcCosh => NullaryOp::ACosh,
         StaticToken::ArcTanh => NullaryOp::ATanh,
         StaticToken::Sqrt => NullaryOp::Sqrt,
+        StaticToken::Subscript => NullaryOp::Subscript,
+        StaticToken::Superscript => NullaryOp::Superscript,
     };
 }
 

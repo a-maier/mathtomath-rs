@@ -168,6 +168,8 @@ fn properties(
             NullaryOp::ACosh => (PREC_ATOM, Nullary("ArcCosh")),
             NullaryOp::ATanh => (PREC_ATOM, Nullary("ArcTanh")),
             NullaryOp::Sqrt => (PREC_ATOM, Nullary("Sqrt")),
+            NullaryOp::Subscript => (PREC_ATOM, Nullary("Subscript")),
+            NullaryOp::Superscript => (PREC_ATOM, Nullary("Superscript")),
             unknown => (PREC_ATOM, UnknownNullary(unknown)),
         },
         Unary(unary, arg) => match unary {

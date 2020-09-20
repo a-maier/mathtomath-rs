@@ -40,6 +40,8 @@ pub enum NullaryOp<'a> {
     ACosh,
     ATanh,
     Sqrt,
+    Subscript,
+    Superscript,
 }
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
@@ -299,6 +301,7 @@ pub enum BinaryOp {
     Star,
     StringExpression,
     StringJoin,
+    Subscript,
     Subset,
     SubsetEqual,
     SubtractFrom,
@@ -307,6 +310,7 @@ pub enum BinaryOp {
     SucceedsSlantEqual,
     SucceedsTilde,
     SuchThat,
+    Superscript,
     Superset,
     SupersetEqual,
     Therefore,

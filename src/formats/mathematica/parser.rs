@@ -262,12 +262,26 @@ fn function_to_expr<'a>(
     head: Expression<'a>,
     arg: Expression<'a>,
 ) -> Expression<'a> {
-    use Expression::Binary;
+    use Expression::{Nullary, Binary};
+    use NullaryOp::{Subscript, Superscript};
     use BinaryOp::*;
-    let args = Box::new((head, arg));
     match op {
-        StaticToken::LeftSquareBracket => Binary(Function, args),
-        StaticToken::LeftPart => Binary(Part, args),
+        StaticToken::LeftSquareBracket => match (head, arg) {
+            (Nullary(Subscript), Binary(Sequence, args)) => {
+                Binary(BinaryOp::Subscript, Box::new((args.0, args.1)))
+            },
+            (Nullary(Superscript), Binary(Sequence, args)) => {
+                Binary(BinaryOp::Superscript, Box::new((args.0, args.1)))
+            },
+            (head, arg) => {
+                trace!("parsed function {:?} of {:?}", head, arg);
+                Binary(Function, Box::new((head, arg)))
+            }
+        },
+        StaticToken::LeftPart => {
+            trace!("parsed part {:?} of {:?}", arg, head);
+            Binary(Part,  Box::new((head, arg)))
+        },
         _ => unreachable!("Internal error: function-like operator {:?} to expression", op)
     }
 }

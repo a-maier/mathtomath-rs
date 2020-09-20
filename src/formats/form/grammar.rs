@@ -41,8 +41,14 @@ pub(crate) fn function_to_expr<'a>(
     use BinaryOp::*;
     let args = Box::new((head, arg));
     match op {
-        StaticToken::LeftBracket => Binary(Function, args),
-        StaticToken::LeftSquareBracket => Binary(Coefficient, args),
+        StaticToken::LeftBracket => {
+            trace!("parsed function {:?} of {:?}", args.0, args.1);
+            Binary(Function, args)
+        },
+        StaticToken::LeftSquareBracket => {
+            trace!("parsed coefficient {:?} of {:?}", args.1, args.0);
+            Binary(Coefficient, args)
+        },
         _ => unreachable!("Internal error: function-like operator {:?} to expression", op)
     }
 }

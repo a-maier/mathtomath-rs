@@ -95,16 +95,6 @@ impl Printer {
                 self.format(w, arg, arg_prec < prec)?;
                 w.write_all(op)?;
             },
-            Infix(left_arg, b"^", right_arg) => {
-                let left_arg = properties(left_arg);
-                let left_arg_prec = left_arg.prec;
-                w.write_all(b"{")?;
-                self.format(w, left_arg, left_arg_prec < prec)?;
-                w.write_all(b"}^{")?;
-                let right_arg = properties(right_arg);
-                Self::inside_sub_or_super().format(w, right_arg, false)?;
-                w.write_all(b"}")?;
-            },
             Infix(left_arg, op, right_arg) => {
                 let left_arg = properties(left_arg);
                 let left_arg_prec = left_arg.prec;
@@ -128,6 +118,18 @@ impl Printer {
                 let arg = properties(arg);
                 self.format(w, arg, false)?;
                 self.write_maybe_bracket(w, right)?;
+            },
+            SubOrSuper(left_arg, op, right_arg) => {
+                let left_arg = properties(left_arg);
+                let left_arg_prec = left_arg.prec;
+                w.write_all(b"{")?;
+                self.format(w, left_arg, left_arg_prec < prec)?;
+                w.write_all(b"}")?;
+                w.write_all(op)?;
+                w.write_all(b"{")?;
+                let right_arg = properties(right_arg);
+                Self::inside_sub_or_super().format(w, right_arg, false)?;
+                w.write_all(b"}")?;
             },
             Frac(head, num, sep, den, term) => {
                 w.write_all(head)?;
@@ -179,6 +181,7 @@ enum ExpressionKind<'a> {
     Nullary(&'static[u8]),
     Prefix(&'static[u8], Expression<'a>),
     Infix(Expression<'a>, &'static[u8], Expression<'a>),
+    SubOrSuper(Expression<'a>, &'static[u8], Expression<'a>),
     Postfix(Expression<'a>, &'static[u8]),
     Circumfix(&'static[u8], Expression<'a>, &'static[u8]),
     Function(Expression<'a>, &'static[u8], Expression<'a>, &'static[u8]),
@@ -280,7 +283,9 @@ fn properties(
                 BinaryOp::Sequence => (PREC_SEQUENCE, Infix(left, b",", right)),
                 BinaryOp::Equals => (PREC_EQUAL, Infix(left, b"=", right)),
                 BinaryOp::Dot => (PREC_DOT, Infix(left, b".", right)),
-                BinaryOp::Power => (PREC_POWER, Infix(left, b"^", right)),
+                BinaryOp::Power | BinaryOp::Superscript =>
+                    (PREC_POWER, SubOrSuper(left, b"^", right)),
+                BinaryOp::Subscript => (PREC_ATOM, SubOrSuper(left, b"_", right)),
                 BinaryOp::Function => {
                     if left == Expression::Nullary(NullaryOp::Sqrt) {
                         (PREC_LEFT_BRACKET, Circumfix(b"\\sqrt{", right, b"}"))
