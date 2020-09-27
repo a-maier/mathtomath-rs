@@ -1,9 +1,16 @@
+// TODO: line length inside \frac
 use super::grammar::*;
 use crate::assoc::Assoc;
 use crate::expression::*;
+use crate::cfg::{CFG, LatexOutputCfg};
 
-use std::io;
+use std::io::{self, Write};
 use std::collections::HashMap;
+use std::mem::swap;
+
+use aho_corasick::AhoCorasick;
+
+const NEWLINE: &[u8] = b"\\\\\n";
 
 pub type Result = std::result::Result<(), std::io::Error>;
 
@@ -18,42 +25,122 @@ impl<'a> Formatter<'a> {
     }
 
     pub fn format<W: io::Write>(self, w: &mut W) -> Result {
-        Printer::new().format(w, properties(self.expression), false)
+        Printer::new().format(w, properties(self.expression))
     }
 
 }
 
+#[derive(Clone,Debug)]
 struct Printer{
-    inside_sub_or_super: bool,
+    cfg: &'static LatexOutputCfg,
+    linebreak_allowed: bool,
+    subscript_level: usize,
+    indentation_level: usize,
+    line: Vec<u8>,
+    cur_line_len: f64,
+    align_finder: AhoCorasick,
 }
 
 impl Printer {
     fn new() -> Self {
         Printer{
-            inside_sub_or_super: false
+            cfg: &CFG.latex_output,
+            linebreak_allowed: true,
+            subscript_level: 0,
+            indentation_level: 0,
+            line: Vec::with_capacity(2*CFG.latex_output.line_length),
+            cur_line_len: 0.,
+            align_finder: AhoCorasick::new(&CFG.latex_output.align_at),
         }
     }
 
-    fn inside_sub_or_super() -> Self {
-        Printer{
-            inside_sub_or_super: false
+    fn into_unbreakable(mut self) -> Self {
+        self.linebreak_allowed = false;
+        self
+    }
+
+    pub(super) fn write_line<W: io::Write>(&mut self, w: &mut W) -> Result {
+        debug!("dumping line {:?}", std::str::from_utf8(&self.line));
+        let align_pos = if let Some(mat) = self.align_finder.find(&self.line) {
+            mat.end()
+        } else if let Some(pos) = self.line.windows(NEWLINE.len()).position(|w| w == NEWLINE) {
+            pos + NEWLINE.len()
+        } else {
+            0
+        };
+        self.line.insert(align_pos, b'&');
+        w.write_all(&self.line)?;
+        //TODO: adjust indentation level depending on number of open brackets
+        Ok(())
+    }
+
+    fn add_linebreak(&mut self) -> Result {
+        self.line.clear();
+        if self.cfg.tags {
+            self.line.write(br"\notag")?;
         }
+        self.line.write(NEWLINE)?;
+        for _ in 0..self.indentation_level {
+            self.line.write(self.cfg.indent_with.as_bytes())?;
+        }
+        self.cur_line_len = (self.cfg.indent_with.len() * self.indentation_level) as f64;
+        Ok(())
     }
 
-    fn write_bracket<W: io::Write>(&self, w: &mut W, bracket: &[u8]) -> Result {
-        w.write_all(bracket)
+    fn write_all<W: io::Write>(&mut self, w: &mut W, buf: &[u8]) -> Result {
+        if self.cur_line_len >= self.cfg.line_length as f64
+            && self.cfg.line_break_before.iter().any(|s| s.as_bytes() == buf)
+            && self.linebreak_allowed
+            && self.subscript_level == 0
+        {
+            self.write_line(w)?;
+            self.add_linebreak()?;
+        }
+        self.line.write(buf)?;
+        self.cur_line_len += self.cfg.subscript_size.powi(
+            self.subscript_level as i32
+        ) * (buf.len() as f64);
+        Ok(())
     }
 
-    fn write_maybe_bracket<W: io::Write>(&self, w: &mut W, expr: &[u8]) -> Result {
+    fn write_bracket<W: io::Write>(&mut self, w: &mut W, bracket: &[u8]) -> Result {
+        self.write_all(w, bracket)
+    }
+
+    fn write_maybe_bracket<W: io::Write>(&mut self, w: &mut W, expr: &[u8]) -> Result {
         if is_bracket(expr) {
             self.write_bracket(w, expr)
         } else {
-            w.write_all(expr)
+            self.write_all(w, expr)
         }
     }
 
     fn format<W: io::Write>(
-        &self,
+        &mut self,
+        w: &mut W,
+        prop: ExpressionProperties<'_>,
+    ) -> Result {
+        self.write_buf(w, prop, false)?;
+        // ensure last line is also written
+        // if it's also the first line (first character is &),
+        // then skip the alignment character
+        let mut buf = Vec::new();
+        self.write_line(&mut buf)?;
+        if let Some(b'&') = buf.first() {
+            w.write_all(&buf[1..])
+        } else {
+            w.write_all(&buf)
+        }
+    }
+
+    fn add_to_line_len(&mut self, len: usize) {
+        self.cur_line_len += self.cfg.subscript_size.powi(
+            self.subscript_level as i32
+        ) * (len as f64);
+    }
+
+    fn write_buf<W: io::Write>(
+        &mut self,
         w: &mut W,
         prop: ExpressionProperties<'_>,
         with_paren: bool
@@ -61,106 +148,145 @@ impl Printer {
         let prec = prop.prec;
         if with_paren {
             self.write_bracket(w, b"(")?;
+            self.add_to_line_len(1);
         }
         use ExpressionKind::*;
         match prop.kind {
             Empty => (),
-            Number(n) => w.write_all(n)?,
+            Number(n) => {
+                self.write_all(w, n)?;
+                self.add_to_line_len(n.len())
+            },
             String(s) => {
-                w.write_all(b"\\text{")?;
-                w.write_all(s)?;
-                w.write_all(b"}")?;
+                self.write_all(w, b"\\text{")?;
+                self.write_all(w, s)?;
+                self.write_all(w, b"}")?;
+                self.add_to_line_len(s.len())
             },
             Symbol(s) => {
                 if let Some(s) = LATEX_SYMBOLS.get(s) {
-                    w.write_all(s)?
+                    self.write_all(w, s)?;
+                    self.add_to_line_len(s.len())
                 } else if s.first() == Some(&b'\\') || s.len() == 1 {
-                    w.write_all(s)?
+                    self.write_all(w, s)?;
+                    self.add_to_line_len(s.len())
                 } else {
-                    w.write_all(b"\\text{")?;
-                    w.write_all(s)?;
-                    w.write_all(b"}")?;
+                    self.write_all(w, b"\\text{")?;
+                    self.write_all(w, s)?;
+                    self.write_all(w, b"}")?;
+                    self.add_to_line_len(s.len())
                 }
             },
-            Nullary(op) => w.write_all(op)?,
+            Nullary(op) => self.write_all(w, op)?,
             Prefix(op, arg) => {
-                w.write_all(op)?;
+                self.write_all(w, op)?;
+                self.add_to_line_len(op.len());
                 let arg = properties(arg);
                 let arg_prec = arg.prec;
-                self.format(w, arg, arg_prec < prec)?;
+                self.write_buf(w, arg, arg_prec < prec)?;
             },
             Postfix(arg, op) => {
                 let arg = properties(arg);
                 let arg_prec = arg.prec;
-                self.format(w, arg, arg_prec < prec)?;
-                w.write_all(op)?;
+                self.write_buf(w, arg, arg_prec < prec)?;
+                self.write_all(w, op)?;
+                self.add_to_line_len(op.len());
             },
             Infix(left_arg, op, right_arg) => {
                 let left_arg = properties(left_arg);
                 let left_arg_prec = left_arg.prec;
-                self.format(w, left_arg, left_arg_prec < prec)?;
-                w.write_all(op)?;
+                self.write_buf(w, left_arg, left_arg_prec < prec)?;
+                self.write_all(w, op)?;
+                self.add_to_line_len(op.len());
                 let right_arg = properties(right_arg);
                 let right_arg_prec = right_arg.prec;
-                self.format(w, right_arg, right_arg_prec <= prec)?;
+                self.write_buf(w, right_arg, right_arg_prec <= prec)?;
             },
             Circumfix(left, arg, right) => {
                 let arg = properties(arg);
                 self.write_maybe_bracket(w, left)?;
-                self.format(w, arg, false)?;
+                self.write_buf(w, arg, false)?;
                 self.write_maybe_bracket(w, right)?;
             },
             Function(head, left, arg, right) => {
                 let head = properties(head);
                 let head_prec = head.prec;
-                self.format(w, head, head_prec < prec)?;
-                self.write_maybe_bracket(w, left)?;
                 let arg = properties(arg);
-                self.format(w, arg, false)?;
-                self.write_maybe_bracket(w, right)?;
+                if self.cfg.line_break_in_argument {
+                    self.write_buf(w, head, head_prec < prec)?;
+                    self.write_maybe_bracket(w, left)?;
+                    self.write_buf(w, arg, false)?;
+                    self.write_maybe_bracket(w, right)?;
+                } else {
+                    let mut printer = self.clone().into_unbreakable();
+                    printer.write_buf(w, head, head_prec < prec)?;
+                    printer.write_maybe_bracket(w, left)?;
+                    printer.write_buf(w, arg, false)?;
+                    printer.write_maybe_bracket(w, right)?;
+                    swap(&mut self.line, &mut printer.line);
+                    swap(&mut self.cur_line_len, &mut printer.cur_line_len);
+                }
             },
             SubOrSuper(left_arg, op, right_arg) => {
                 let left_arg = properties(left_arg);
                 let left_arg_prec = left_arg.prec;
-                w.write_all(b"{")?;
-                self.format(w, left_arg, left_arg_prec < prec)?;
-                w.write_all(b"}")?;
-                w.write_all(op)?;
-                w.write_all(b"{")?;
+                //self.write_all(w, b"{")?;
+                self.write_buf(w, left_arg, left_arg_prec < prec)?;
+                //self.write_all(w, b"}")?;
+                self.write_all(w, op)?;
+                self.subscript_level += 1;
+                self.write_all(w, b"{")?;
                 let right_arg = properties(right_arg);
-                Self::inside_sub_or_super().format(w, right_arg, false)?;
-                w.write_all(b"}")?;
+                self.write_buf(w, right_arg, false)?;
+                self.write_all(w, b"}")?;
+                self.subscript_level -= 1;
             },
             Frac(head, num, sep, den, term) => {
-                w.write_all(head)?;
+                let len_before = self.cur_line_len;
+                let mut printer = self.clone().into_unbreakable();
+                printer.write_all(w, head)?;
                 let num = remove_bracket(num);
-                Self::inside_sub_or_super().format(w, properties(num), false)?;
-                w.write_all(sep)?;
+                printer.write_buf(w, properties(num), false)?;
+                let num_len = printer.cur_line_len - len_before;
+                printer.write_all(w, sep)?;
                 let den = remove_bracket(den);
-                Self::inside_sub_or_super().format(w, properties(den), false)?;
-                w.write_all(term)?;
+                printer.write_buf(w, properties(den), false)?;
+                printer.write_all(w, term)?;
+                let den_len = printer.cur_line_len - len_before - num_len;
+                swap(&mut self.line, &mut printer.line);
+                self.cur_line_len += num_len.max(den_len);
             },
             UnknownNullary(sym) => {
-                write!(w, "\\text{{{:?}}}", sym)?;
+                let mut buf = Vec::new();
+                write!(buf, "\\text{{{:?}}}", sym)?;
+                self.write_all(w, &buf)?;
+                self.add_to_line_len(buf.len() - 7);
             },
             UnknownUnary(sym, arg) => {
-                write!(w, "\\text{{{:?}}}", sym)?;
+                let mut buf = Vec::new();
+                write!(buf, "\\text{{{:?}}}", sym)?;
+                self.write_all(w, &buf)?;
+                self.add_to_line_len(buf.len() - 7);
                 self.write_bracket(w, b"(")?;
                 let arg = properties(arg);
-                self.format(w, arg, false)?;
+                self.write_buf(w, arg, false)?;
                 self.write_bracket(w, b")")?;
             },
             UnknownBinary(sym, left, right) => {
-                write!(w, "\\text{{{:?}}}", sym)?;
+                let mut buf = Vec::new();
+                write!(buf, "\\text{{{:?}}}", sym)?;
+                self.write_all(w, &buf)?;
+                self.add_to_line_len(buf.len() - 7);
                 self.write_bracket(w, b"(")?;
                 let arg = Expression::Binary(BinaryOp::Sequence, Box::new((left, right)));
                 let arg = properties(arg);
-                self.format(w, arg, false)?;
+                self.write_buf(w, arg, false)?;
                 self.write_bracket(w, b")")?;
             },
         };
         if with_paren {
             self.write_bracket(w, b")")?;
+            self.add_to_line_len(1);
         }
         Ok(())
     }

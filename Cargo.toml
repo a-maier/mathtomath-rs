@@ -13,6 +13,7 @@ categories = ["mathematics", "parser-implementations"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+aho-corasick = "0.7"
 clap = "2.33"
 confy = "0.4"
 env_logger = "0.7"

@@ -254,6 +254,7 @@ checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 name = "mathtomath"
 version = "0.1.0"
 dependencies = [
+ "aho-corasick",
  "ansi_term 0.12.1",
  "clap",
  "confy",

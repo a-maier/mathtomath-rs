@@ -5,11 +5,11 @@ use log::{debug, trace};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub(crate) struct Cfg {
-    pub(crate) latex_output: LatexOutput,
+    pub(crate) latex_output: LatexOutputCfg,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct LatexOutput {
+pub(crate) struct LatexOutputCfg {
     pub(crate) line_length: usize,
     pub(crate) line_break_before: Vec<String>,
     pub(crate) line_break_in_argument: bool,
@@ -19,7 +19,7 @@ pub(crate) struct LatexOutput {
     pub(crate) subscript_size: f64
 }
 
-impl Default for LatexOutput {
+impl Default for LatexOutputCfg {
     fn default() -> Self {
         Self{
             line_length: 80,
