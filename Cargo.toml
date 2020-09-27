@@ -14,6 +14,7 @@ categories = ["mathematics", "parser-implementations"]
 
 [dependencies]
 clap = "2.33"
+confy = "0.4"
 env_logger = "0.7"
 lazy_static = "1.4"
 log = "0.4"
@@ -24,3 +25,5 @@ structopt = "0.3"
 subslice = "0.2"
 regex = "1.3"
 ansi_term = "0.12"
+serde = "1"
+serde_derive = "1"

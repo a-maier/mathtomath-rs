@@ -13,6 +13,7 @@ mod arity;
 mod assoc;
 mod formats;
 mod range;
+mod cfg;
 
 use expression::Expression;
 use error::{Context, Error, ParseError, SyntaxError};
