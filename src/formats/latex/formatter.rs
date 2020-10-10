@@ -78,7 +78,7 @@ impl Printer {
 
     fn add_linebreak(&mut self) -> Result {
         self.line.clear();
-        if self.cfg.tags {
+        if !self.cfg.tags {
             self.line.write(br"\notag")?;
         }
         self.line.write(NEWLINE)?;
