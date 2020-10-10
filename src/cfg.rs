@@ -17,6 +17,7 @@ pub(crate) struct Cfg {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct LatexOutputCfg {
+    pub(crate) bracket_types: Vec<String>,
     pub(crate) bracket_sizing: BracketSizing,
     pub(crate) line_length: usize,
     pub(crate) line_break_before: Vec<String>,
@@ -30,6 +31,14 @@ pub(crate) struct LatexOutputCfg {
 impl Default for LatexOutputCfg {
     fn default() -> Self {
         Self{
+            bracket_types: vec![
+                "(".to_string(),
+                ")".to_string(),
+                "[".to_string(),
+                "]".to_string(),
+                "\\{".to_string(),
+                "\\}".to_string(),
+            ],
             bracket_sizing: BracketSizing::LeftRight,
             line_length: 80,
             line_break_before: vec!["+".to_string(), "-".to_string()],

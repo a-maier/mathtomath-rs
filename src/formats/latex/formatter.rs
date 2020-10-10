@@ -115,39 +115,70 @@ impl Printer {
         Ok(())
     }
 
-    fn write_left_bracket<W: io::Write>(&mut self, w: &mut W, bracket: &[u8]) -> Result {
+    fn bracket_size(&self, bracket_level: u32) -> &'static [u8] {
+        let size = (2 * bracket_level as usize) / self.cfg.bracket_types.len();
+        match size {
+            0 => b"",
+            1 => br"\big",
+            2 => br"\Big",
+            3 => br"\bigg",
+            _ => br"\Bigg",
+        }
+    }
+
+    fn write_left_bracket<W: io::Write>(
+        &mut self,
+        w: &mut W,
+        bracket: &[u8],
+        bracket_level: u32,
+    ) -> Result {
         match self.cfg.bracket_sizing {
             BracketSizing::LeftRight => self.write_all(w, br"\left")?,
-            BracketSizing::Incremental => { unimplemented!() },
-            BracketSizing::None => { },
-        }
+            BracketSizing::Incremental => self.write_all(w, self.bracket_size(bracket_level))?,
+            BracketSizing::None => { }
+        };
         self.write_all(w, bracket)?;
         self.open_brackets += 1;
         Ok(())
     }
 
-    fn write_right_bracket<W: io::Write>(&mut self, w: &mut W, bracket: &[u8]) -> Result {
+    fn write_right_bracket<W: io::Write>(
+        &mut self,
+        w: &mut W,
+        bracket: &[u8],
+        bracket_level: u32,
+    ) -> Result {
         match self.cfg.bracket_sizing {
             BracketSizing::LeftRight => self.write_all(w, br"\right")?,
-            BracketSizing::Incremental => { unimplemented!() },
-            BracketSizing::None => { },
-        }
+            BracketSizing::Incremental => self.write_all(w, self.bracket_size(bracket_level))?,
+            BracketSizing::None => { }
+        };
         self.write_all(w, bracket)?;
         self.open_brackets -= 1;
         Ok(())
     }
 
-    fn write_maybe_left_bracket<W: io::Write>(&mut self, w: &mut W, expr: &[u8]) -> Result {
+    fn write_maybe_left_bracket<W: io::Write>(
+        &mut self,
+        w: &mut W,
+        expr: &[u8],
+        bracket_level: u32,
+    ) -> Result {
         if is_left_bracket(expr) {
-            self.write_left_bracket(w, expr)
+            self.write_left_bracket(w, expr, bracket_level)
         } else {
             self.write_all(w, expr)
         }
     }
 
-    fn write_maybe_right_bracket<W: io::Write>(&mut self, w: &mut W, expr: &[u8]) -> Result {
+    fn write_maybe_right_bracket<W: io::Write>(
+        &mut self,
+        w: &mut W,
+        expr: &[u8],
+        bracket_level: u32,
+    ) -> Result {
         if is_right_bracket(expr) {
-            self.write_right_bracket(w, expr)
+            self.write_right_bracket(w, expr, bracket_level)
         } else {
             self.write_all(w, expr)
         }
@@ -227,22 +258,24 @@ impl Printer {
                 self.write_buf(w, *right_arg)?;
             },
             Circumfix(left, arg, right) => {
-                self.write_maybe_left_bracket(w, left)?;
+                let bracket_level = arg.bracket_level;
+                self.write_maybe_left_bracket(w, left, bracket_level)?;
                 self.write_buf(w, *arg)?;
-                self.write_maybe_right_bracket(w, right)?;
+                self.write_maybe_right_bracket(w, right, bracket_level)?;
             },
             Function(head, left, arg, right) => {
+                let bracket_level = arg.bracket_level;
                 if self.cfg.line_break_in_argument {
                     self.write_buf(w, *head)?;
-                    self.write_maybe_left_bracket(w, left)?;
+                    self.write_maybe_left_bracket(w, left, bracket_level)?;
                     self.write_buf(w, *arg)?;
-                    self.write_maybe_right_bracket(w, right)?;
+                    self.write_maybe_right_bracket(w, right, bracket_level)?;
                 } else {
                     let mut printer = self.clone().into_unbreakable();
                     printer.write_buf(w, *head)?;
-                    printer.write_maybe_left_bracket(w, left)?;
+                    printer.write_maybe_left_bracket(w, left, bracket_level)?;
                     printer.write_buf(w, *arg)?;
-                    printer.write_maybe_right_bracket(w, right)?;
+                    printer.write_maybe_right_bracket(w, right, bracket_level)?;
                     swap(&mut self.line, &mut printer.line);
                     swap(&mut self.cur_line_len, &mut printer.cur_line_len);
                 }
@@ -278,28 +311,29 @@ impl Printer {
                 self.add_to_line_len(buf.len() - 7);
             },
             UnknownUnary(sym, arg) => {
+                let bracket_level = arg.bracket_level;
                 let mut buf = Vec::new();
                 write!(buf, "\\text{{{:?}}}", sym)?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
-                self.write_left_bracket(w, b"(")?;
+                self.write_left_bracket(w, b"(", bracket_level)?;
                 self.write_buf(w, *arg)?;
-                self.write_right_bracket(w, b")")?;
+                self.write_right_bracket(w, b")", bracket_level)?;
             },
             UnknownBinary(sym, left, right) => {
                 let mut buf = Vec::new();
                 write!(buf, "\\text{{{:?}}}", sym)?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
-                self.write_left_bracket(w, b"(")?;
                 let bracket_level = std::cmp::max(left.bracket_level, right.bracket_level);
+                self.write_left_bracket(w, b"(", bracket_level)?;
                 let arg = ExpressionProperties{
                     prec: PREC_SEQUENCE,
                     kind: Infix(left, b",", right),
                     bracket_level
                 };
                 self.write_buf(w, arg)?;
-                self.write_right_bracket(w, b")")?;
+                self.write_right_bracket(w, b")", bracket_level)?;
             },
         };
         Ok(())
@@ -432,8 +466,11 @@ impl Printer {
                             outer_bracket_level(&left),
                             outer_bracket_level(&right)
                         );
-                        if bracket_level < MIN_FRAC_BRACKET_LEVEL {
-                            bracket_level = MIN_FRAC_BRACKET_LEVEL;
+                        let min_bracket_level = MIN_FRAC_BRACKET_LEVEL * (
+                            self.cfg.bracket_types.len() as u32
+                        ) / 2;
+                        if bracket_level < min_bracket_level {
+                            bracket_level = min_bracket_level;
                         }
                         (PREC_DIVIDE, Frac(b"\\frac{", left, b"}{", right, b"}"))
                     },
