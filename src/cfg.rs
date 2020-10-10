@@ -3,6 +3,13 @@ use confy::ConfyError;
 use serde_derive::{Serialize, Deserialize};
 use log::{debug, trace};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub(crate) enum BracketSizing {
+    None,
+    Incremental,
+    LeftRight,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub(crate) struct Cfg {
     pub(crate) latex_output: LatexOutputCfg,
@@ -10,6 +17,7 @@ pub(crate) struct Cfg {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct LatexOutputCfg {
+    pub(crate) bracket_sizing: BracketSizing,
     pub(crate) line_length: usize,
     pub(crate) line_break_before: Vec<String>,
     pub(crate) line_break_in_argument: bool,
@@ -22,6 +30,7 @@ pub(crate) struct LatexOutputCfg {
 impl Default for LatexOutputCfg {
     fn default() -> Self {
         Self{
+            bracket_sizing: BracketSizing::LeftRight,
             line_length: 80,
             line_break_before: vec!["+".to_string(), "-".to_string()],
             line_break_in_argument: false,
