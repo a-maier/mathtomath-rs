@@ -35,7 +35,7 @@ struct Printer{
     cfg: &'static LatexOutputCfg,
     linebreak_allowed: bool,
     subscript_level: usize,
-    indentation_level: usize,
+    open_brackets: usize,
     line: Vec<u8>,
     cur_line_len: f64,
     align_finder: AhoCorasick,
@@ -49,7 +49,7 @@ impl Printer {
             cfg: &CFG.latex_output,
             linebreak_allowed: true,
             subscript_level: 0,
-            indentation_level: 0,
+            open_brackets: 0,
             line: Vec::with_capacity(2*CFG.latex_output.line_length),
             cur_line_len: 0.,
             align_finder: AhoCorasick::new(&CFG.latex_output.align_at),
@@ -82,10 +82,10 @@ impl Printer {
             self.line.write(br"\notag")?;
         }
         self.line.write(NEWLINE)?;
-        for _ in 0..self.indentation_level {
+        for _ in 0..self.open_brackets {
             self.line.write(self.cfg.indent_with.as_bytes())?;
         }
-        self.cur_line_len = (self.cfg.indent_with.len() * self.indentation_level) as f64;
+        self.cur_line_len = (self.cfg.indent_with.len() * self.open_brackets) as f64;
         Ok(())
     }
 
@@ -105,13 +105,29 @@ impl Printer {
         Ok(())
     }
 
-    fn write_bracket<W: io::Write>(&mut self, w: &mut W, bracket: &[u8]) -> Result {
-        self.write_all(w, bracket)
+    fn write_left_bracket<W: io::Write>(&mut self, w: &mut W, bracket: &[u8]) -> Result {
+        self.write_all(w, bracket)?;
+        self.open_brackets += 1;
+        Ok(())
     }
 
-    fn write_maybe_bracket<W: io::Write>(&mut self, w: &mut W, expr: &[u8]) -> Result {
-        if is_bracket(expr) {
-            self.write_bracket(w, expr)
+    fn write_right_bracket<W: io::Write>(&mut self, w: &mut W, bracket: &[u8]) -> Result {
+        self.write_all(w, bracket)?;
+        self.open_brackets -= 1;
+        Ok(())
+    }
+
+    fn write_maybe_left_bracket<W: io::Write>(&mut self, w: &mut W, expr: &[u8]) -> Result {
+        if is_left_bracket(expr) {
+            self.write_left_bracket(w, expr)
+        } else {
+            self.write_all(w, expr)
+        }
+    }
+
+    fn write_maybe_right_bracket<W: io::Write>(&mut self, w: &mut W, expr: &[u8]) -> Result {
+        if is_right_bracket(expr) {
+            self.write_right_bracket(w, expr)
         } else {
             self.write_all(w, expr)
         }
@@ -191,22 +207,22 @@ impl Printer {
                 self.write_buf(w, *right_arg)?;
             },
             Circumfix(left, arg, right) => {
-                self.write_maybe_bracket(w, left)?;
+                self.write_maybe_left_bracket(w, left)?;
                 self.write_buf(w, *arg)?;
-                self.write_maybe_bracket(w, right)?;
+                self.write_maybe_right_bracket(w, right)?;
             },
             Function(head, left, arg, right) => {
                 if self.cfg.line_break_in_argument {
                     self.write_buf(w, *head)?;
-                    self.write_maybe_bracket(w, left)?;
+                    self.write_maybe_left_bracket(w, left)?;
                     self.write_buf(w, *arg)?;
-                    self.write_maybe_bracket(w, right)?;
+                    self.write_maybe_right_bracket(w, right)?;
                 } else {
                     let mut printer = self.clone().into_unbreakable();
                     printer.write_buf(w, *head)?;
-                    printer.write_maybe_bracket(w, left)?;
+                    printer.write_maybe_left_bracket(w, left)?;
                     printer.write_buf(w, *arg)?;
-                    printer.write_maybe_bracket(w, right)?;
+                    printer.write_maybe_right_bracket(w, right)?;
                     swap(&mut self.line, &mut printer.line);
                     swap(&mut self.cur_line_len, &mut printer.cur_line_len);
                 }
@@ -246,16 +262,16 @@ impl Printer {
                 write!(buf, "\\text{{{:?}}}", sym)?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
-                self.write_bracket(w, b"(")?;
+                self.write_left_bracket(w, b"(")?;
                 self.write_buf(w, *arg)?;
-                self.write_bracket(w, b")")?;
+                self.write_right_bracket(w, b")")?;
             },
             UnknownBinary(sym, left, right) => {
                 let mut buf = Vec::new();
                 write!(buf, "\\text{{{:?}}}", sym)?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
-                self.write_bracket(w, b"(")?;
+                self.write_left_bracket(w, b"(")?;
                 let bracket_level = std::cmp::max(left.bracket_level, right.bracket_level);
                 let arg = ExpressionProperties{
                     prec: PREC_SEQUENCE,
@@ -263,7 +279,7 @@ impl Printer {
                     bracket_level
                 };
                 self.write_buf(w, arg)?;
-                self.write_bracket(w, b")")?;
+                self.write_right_bracket(w, b")")?;
             },
         };
         Ok(())
