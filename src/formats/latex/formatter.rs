@@ -345,7 +345,11 @@ impl Printer {
                 let arg_prop = Box::new(self.properties(*arg));
                 let mut bracket_level = outer_bracket_level(&arg_prop);
                 let (prec, kind) = match unary {
-                UnaryOp::Bracket => (PREC_LEFT_BRACKET, Circumfix(b"(", arg_prop, b")")),
+                    UnaryOp::Bracket => (PREC_LEFT_BRACKET, Circumfix(
+                        self.left_bracket(bracket_level),
+                        arg_prop,
+                        self.right_bracket(bracket_level),
+                    )),
                     // ignore wildcard modifieres
                     UnaryOp::Wildcard
                         | UnaryOp::ManyWildcard
@@ -479,6 +483,16 @@ impl Printer {
             }
         };
         ExpressionProperties{prec, kind, bracket_level}
+    }
+
+    fn left_bracket(&self, bracket_level: u32) -> &'static [u8] {
+        let nbrackets = self.cfg.bracket_types.len();
+        self.cfg.bracket_types[(2 * bracket_level as usize) % nbrackets].as_bytes()
+    }
+
+    fn right_bracket(&self, bracket_level: u32) -> &'static [u8] {
+        let nbrackets = self.cfg.bracket_types.len();
+        self.cfg.bracket_types[(1 + 2 * bracket_level as usize) % nbrackets].as_bytes()
     }
 }
 
