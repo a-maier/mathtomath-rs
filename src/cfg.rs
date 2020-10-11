@@ -40,7 +40,7 @@ impl Default for LatexOutputCfg {
                 "\\}".to_string(),
             ],
             bracket_sizing: BracketSizing::LeftRight,
-            line_length: 80,
+            line_length: 70,
             line_break_before: vec!["+".to_string(), "-".to_string()],
             line_break_in_argument: false,
             align_at: vec!["=".to_string()],
