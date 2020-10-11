@@ -422,13 +422,13 @@ impl Printer {
                         Prefix(op, arg)
                     } else {
                         bracket_level += 1;
-                        Prefix(op, add_bracket(arg))
+                        Prefix(op, self.add_bracket(arg))
                     },
                     Postfix(arg, op) => if arg.prec >= prec {
                         Postfix(arg, op)
                     } else {
                         bracket_level += 1;
-                        Postfix(add_bracket(arg), op)
+                        Postfix(self.add_bracket(arg), op)
                     },
                     other => other
                 };
@@ -457,8 +457,8 @@ impl Printer {
                     BinaryOp::Minus => (PREC_MINUS, Infix(left, b"-", right)),
                     BinaryOp::Times => (PREC_TIMES, Infix(left, self.cfg.multiplication_symbol.as_bytes(), right)),
                     BinaryOp::Divide => {
-                        let left = remove_bracket(left);
-                        let right = remove_bracket(right);
+                        let left = self.remove_bracket(left);
+                        let right = self.remove_bracket(right);
                         bracket_level = std::cmp::max(
                             outer_bracket_level(&left),
                             outer_bracket_level(&right)
@@ -490,10 +490,10 @@ impl Printer {
                 let kind = match kind {
                     Infix(mut left, op, mut right) => {
                         if left.prec < prec {
-                            left = add_bracket(left);
+                            left = self.add_bracket(left);
                         }
                         if right.prec <= prec {
-                            right = add_bracket(right);
+                            right = self.add_bracket(right);
                         }
                         bracket_level = std::cmp::max(
                             outer_bracket_level(&left),
@@ -504,12 +504,12 @@ impl Printer {
                     Function(head, open, arg, close) => if head.prec >= prec {
                         Function(head, open, arg, close)
                     } else {
-                        Function(add_bracket(head), open, arg, close)
+                        Function(self.add_bracket(head), open, arg, close)
                     },
                     SubOrSuper(base, op, arg) => if base.prec >= prec {
                         SubOrSuper(base, op, arg)
                     } else {
-                        SubOrSuper(add_bracket(base), op, arg)
+                        SubOrSuper(self.add_bracket(base), op, arg)
                     },
                     other => other
                 };
@@ -528,6 +528,37 @@ impl Printer {
         let nbrackets = self.cfg.bracket_types.len();
         self.cfg.bracket_types[(1 + 2 * bracket_level as usize) % nbrackets].as_bytes()
     }
+
+    fn remove_bracket<'a>(
+        &self,
+        expr: Box<ExpressionProperties<'a>>
+    ) -> Box<ExpressionProperties<'a>> {
+        let bracket_level = expr.bracket_level;
+        match expr.kind {
+            ExpressionKind::Circumfix(left, arg, right)
+                if left == self.left_bracket(bracket_level)
+                && right == self.right_bracket(bracket_level)
+                => arg,
+            _ => expr
+        }
+    }
+
+    fn add_bracket<'a>(
+        &self,
+        expr: Box<ExpressionProperties<'a>>
+    ) -> Box<ExpressionProperties<'a>> {
+        let bracket_level = expr.bracket_level;
+        Box::new(ExpressionProperties{
+            prec: PREC_LEFT_BRACKET,
+            kind: ExpressionKind::Circumfix(
+                self.left_bracket(bracket_level),
+                expr,
+                self.right_bracket(bracket_level)
+            ),
+            bracket_level
+        })
+    }
+
 }
 
 #[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
@@ -554,24 +585,6 @@ enum ExpressionKind<'a> {
     UnknownNullary(NullaryOp<'a>),
     UnknownUnary(UnaryOp, Box<ExpressionProperties<'a>>),
     UnknownBinary(BinaryOp, Box<ExpressionProperties<'a>>, Box<ExpressionProperties<'a>>),
-}
-
-
-fn remove_bracket(expr: Box<ExpressionProperties<'_>>) -> Box<ExpressionProperties<'_>> {
-    if let ExpressionKind::Circumfix(b"(", arg, b")") = expr.kind {
-        arg
-    } else {
-        expr
-    }
-}
-
-fn add_bracket(expr: Box<ExpressionProperties<'_>>) -> Box<ExpressionProperties<'_>> {
-    let bracket_level = expr.bracket_level;
-    Box::new(ExpressionProperties{
-        prec: PREC_LEFT_BRACKET,
-        kind: ExpressionKind::Circumfix(b"(", expr, b")"),
-        bracket_level
-    })
 }
 
 fn outer_bracket_level(expr: &ExpressionProperties<'_>) -> u32 {
