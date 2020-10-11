@@ -95,7 +95,7 @@ impl Printer {
                 self.line.write(br"\left.")?;
             }
         }
-        self.cur_line_len = (self.cfg.indent_with.len() * self.open_brackets) as f64;
+        self.cur_line_len = 0.;
         Ok(())
     }
 
@@ -109,9 +109,6 @@ impl Printer {
             self.add_linebreak()?;
         }
         self.line.write(buf)?;
-        self.cur_line_len += self.cfg.subscript_size.powi(
-            self.subscript_level as i32
-        ) * (buf.len() as f64);
         Ok(())
     }
 
