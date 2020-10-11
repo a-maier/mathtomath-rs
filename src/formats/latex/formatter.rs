@@ -455,7 +455,7 @@ impl Printer {
                 let (prec, kind) = match binary {
                     BinaryOp::Plus => (PREC_PLUS, Infix(left, b"+", right)),
                     BinaryOp::Minus => (PREC_MINUS, Infix(left, b"-", right)),
-                    BinaryOp::Times => (PREC_TIMES, Infix(left, b"\\*", right)),
+                    BinaryOp::Times => (PREC_TIMES, Infix(left, self.cfg.multiplication_symbol.as_bytes(), right)),
                     BinaryOp::Divide => {
                         let left = remove_bracket(left);
                         let right = remove_bracket(right);
