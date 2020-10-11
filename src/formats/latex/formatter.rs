@@ -466,8 +466,12 @@ impl Printer {
                         let min_bracket_level = MIN_FRAC_BRACKET_LEVEL * (
                             self.cfg.bracket_types.len() as u32
                         ) / 2;
-                        if bracket_level < min_bracket_level {
-                            bracket_level = min_bracket_level;
+                        let min_bracket_level = self.cfg.subscript_size.powi(
+                            self.subscript_level as i32
+                        ) * (min_bracket_level as f64);
+                        let min_bracket_level = min_bracket_level.round();
+                        if bracket_level < min_bracket_level as _ {
+                            bracket_level = min_bracket_level as _;
                         }
                         (PREC_DIVIDE, Frac(b"\\frac{", left, b"}{", right, b"}"))
                     },
@@ -475,9 +479,14 @@ impl Printer {
                     BinaryOp::Sequence => (PREC_SEQUENCE, Infix(left, b",", right)),
                     BinaryOp::Equals => (PREC_EQUAL, Infix(left, b"=", right)),
                     BinaryOp::Dot => (PREC_DOT, Infix(left, b".", right)),
-                    BinaryOp::Power | BinaryOp::Superscript =>
-                        (PREC_POWER, SubOrSuper(left, b"^", right)),
-                    BinaryOp::Subscript => (PREC_ATOM, SubOrSuper(left, b"_", right)),
+                    BinaryOp::Power | BinaryOp::Superscript => {
+                        let right = self.remove_bracket(right);
+                        (PREC_POWER, SubOrSuper(left, b"^", right))
+                    },
+                    BinaryOp::Subscript => {
+                        let right = self.remove_bracket(right);
+                        (PREC_ATOM, SubOrSuper(left, b"_", right))
+                    },
                     BinaryOp::Function => {
                         if left.kind == Nullary(b"\\sqrt") {
                             (PREC_LEFT_BRACKET, Circumfix(b"\\sqrt{", right, b"}"))
