@@ -11,7 +11,7 @@ use nom::{
         complete::{char, one_of},
         is_alphabetic, is_alphanumeric, is_digit,
     },
-    multi::many0,
+    multi::{many0, many1},
     sequence::{delimited, preceded, terminated, tuple},
     combinator::opt,
 };
@@ -126,16 +126,16 @@ fn reverse<T,U>(tuple: (T, U)) -> (U, T) {
 
 // only call this at the start of the input or if the last byte was a linebreak
 fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (rest, _) = terminated(
+    let (rest, _) = many1(terminated(
         preceded(char('*'), take_until("\n")), char('\n')
-    )(i)?;
+    ))(i)?;
     let comment_len = i.len() - rest.len();
     Ok(reverse(i.split_at(comment_len)))
 }
 
 fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let (rest, space) = take_while(|u: u8| u.is_ascii_whitespace())(i)?;
-    if let Some(b'\n') = space.last() {
+    if Some(&b'\n') == space.last() {
         if let Ok((rest, _)) = comment(rest) {
             let total_len = if let Ok((rest, _)) = whitespace(rest) {
                 i.len() - rest.len()
@@ -366,6 +366,21 @@ foo = [bar][as^3];
         let expr: &[u8] = b"+ ";
         let mut p = Lexer::for_input(&expr);
         assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
+        assert_eq!(p.next(), None);
+    }
+
+    #[test]
+    fn tst_comment() {
+        log_init();
+
+        let expr = b"* this is a
+* multiline comment
+* with an empty line in the middle
+*
+
+****
+";
+        let mut p = Lexer::for_input(expr as _);
         assert_eq!(p.next(), None);
     }
 }
