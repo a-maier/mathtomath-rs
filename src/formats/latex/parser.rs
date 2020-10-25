@@ -85,6 +85,13 @@ impl<'a> Parser<'a> {
                 Token::Symbol(name) => Ok(Nullary(Symbol(name))),
                 Token::Integer(int) => Ok(Nullary(Integer(int))),
                 Token::Real(x) => Ok(Nullary(Real(x))),
+                Token::Static(StaticToken::Frac) => {
+                    let num = self.parse_with(next, PREC_FRAC)?;
+                    trace!("fraction num: {:?}", num);
+                    let den = self.parse_with(next, PREC_FRAC)?;
+                    trace!("fraction den: {:?}", num);
+                    Ok(Expression::Binary(BinaryOp::Divide, Box::new((num, den))))
+                },
                 Token::Static(s) => {
                     use Arity::*;
                     match NULL_ARITY.get(&s) {
@@ -92,6 +99,7 @@ impl<'a> Parser<'a> {
                             Expression::Nullary(TOKEN_EXPRESSION[&s])
                         ),
                         Some(Unary) => if let Some(closing) = CLOSING_BRACKET.get(&s) {
+                            trace!("looking for {:?}", closing);
                             // this is actually a bracket
                             let arg = self.parse_with(next, 0)?;
                             let next_token = next.as_ref().map(|(t, _pos)| t);

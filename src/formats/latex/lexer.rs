@@ -3,6 +3,7 @@ use crate::range::Range;
 
 use super::tokens::{BUILTIN, MAX_TOKEN_STR_LEN, Token};
 
+use std::str::from_utf8;
 use nom::{
     IResult,
     branch::alt,
@@ -155,7 +156,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_success(&mut self, token: &'a [u8], new_remaining: &'a [u8]) {
-        debug!("parsed '{:?}'", token);
+        debug!("parsed '{:?}'", from_utf8(token));
         self.pos += token.len();
         self.remaining_input = new_remaining;
     }

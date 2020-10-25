@@ -22,6 +22,7 @@ pub const PREC_EXISTS: u32 = 46;
 pub const PREC_FACTORIAL: u32 = 83;
 pub const PREC_FACTORIAL2: u32 = 83;
 pub const PREC_FOR_ALL: u32 = 46;
+pub const PREC_FRAC: u32 = 100;
 pub const PREC_GREATER: u32 = 49;
 pub const PREC_GREATER_EQUAL: u32 = 49;
 pub const PREC_IMPLIES: u32 = 40;

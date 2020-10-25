@@ -431,6 +431,7 @@ lazy_static! {
         StaticToken::LeftBracket => PREC_LEFT_BRACKET,
         StaticToken::LeftBrace => PREC_LEFT_BRACKET,
         StaticToken::RightBracket => PREC_RIGHT_BRACKET,
+        StaticToken::RightBrace => PREC_RIGHT_BRACKET,
         StaticToken::LeftCeiling => PREC_LEFT_CEILING,
         StaticToken::RightCeiling => PREC_RIGHT_CEILING,
         StaticToken::CircleMinus => PREC_CIRCLE_MINUS,
@@ -595,8 +596,8 @@ lazy_static! {
 lazy_static! {
     pub(crate) static ref LEFT_ARITY: HashMap<StaticToken, Arity> = hashmap!{
         StaticToken::LeftBracket => Arity::Function,
-        StaticToken::LeftBrace => Arity::Function,
 
+        StaticToken::LeftBrace => Arity::Unary,
         StaticToken::DoubleFactorial => Arity::Unary,
         StaticToken::ConjugateTranspose => Arity::Unary,
 
