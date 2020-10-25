@@ -7,6 +7,7 @@ use crate::expression::*;
 use crate::assoc::Assoc;
 use crate::arity::Arity;
 use crate::range::Range;
+use crate::error::ErrorKind;
 
 pub fn parse(input: &[u8]) -> Result<Expression<'_>, SyntaxError> {
     let mut parser = Parser::new(input);
@@ -139,40 +140,56 @@ impl<'a> Parser<'a> {
         left: Expression<'a>,
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("left called on token {:?}", token);
-        if let Some((Token::Static(s), ref pos)) = token {
-            use Arity::*;
-            match LEFT_ARITY.get(&s) {
-                Some(Unary) => Ok(postfix_op_to_expr(s, left)),
-                Some(Binary) => {
-                    let right_binding_power = left_binding_power(token);
-                    let right = self.parse_with(next, right_binding_power)?;
-                    Ok(binary_op_to_expr(s, left, right))
-                },
-                Some(Function) => {
-                    let next_token = next.as_ref().map(|(t, _pos)| t);
-                    if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
-                        *next = self.lexer.next().transpose()?;
-                        let arg = Expression::Nullary(NullaryOp::Empty);
-                        return Ok(Expression::Binary(BinaryOp::Function, Box::new((left, arg))));
-                    }
-                    let right = self.parse_with(next, 0)?;
-                    let next_token = next.as_ref().map(|(t, _pos)| t);
-                    if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
-                        *next = self.lexer.next().transpose()?;
-                        Ok(Expression::Binary(BinaryOp::Function, Box::new((left, right))))
-                    } else {
-                        let bracket = &self.input[pos.start..pos.end];
-                        let bracket = std::str::from_utf8(bracket).unwrap();
-                        Err(SyntaxError::new(Unmatched(bracket.to_owned()), pos.start))
-                    }
-                },
-                Some(arity) => unreachable!(
-                    "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
-                ),
-                None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
-            }
-        } else {
-            Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()))
+        match token {
+            Some((Token::Static(s), ref pos)) => {
+                use Arity::*;
+                trace!("left arity for {:?}: {:?}", s, LEFT_ARITY.get(&s));
+                match LEFT_ARITY.get(&s) {
+                    Some(Unary) => Ok(postfix_op_to_expr(s, left)),
+                    Some(Binary) => {
+                        let right_binding_power = left_binding_power(token);
+                        let right = self.parse_with(next, right_binding_power)?;
+                        binary_op_to_expr(s, left, right).map_err(
+                            |e| SyntaxError::new(e, pos.start)
+                        )
+                    },
+                    Some(Function) => {
+                        let next_token = next.as_ref().map(|(t, _pos)| t);
+                        if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
+                            *next = self.lexer.next().transpose()?;
+                            let arg = Expression::Nullary(NullaryOp::Empty);
+                            return Ok(Expression::Binary(BinaryOp::Function, Box::new((left, arg))));
+                        }
+                        let right = self.parse_with(next, 0)?;
+                        let next_token = next.as_ref().map(|(t, _pos)| t);
+                        if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
+                            *next = self.lexer.next().transpose()?;
+                            Ok(Expression::Binary(BinaryOp::Function, Box::new((left, right))))
+                        } else {
+                            let bracket = &self.input[pos.start..pos.end];
+                            let bracket = std::str::from_utf8(bracket).unwrap();
+                            Err(SyntaxError::new(Unmatched(bracket.to_owned()), pos.start))
+                        }
+                    },
+                    Some(arity) => unreachable!(
+                        "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
+                    ),
+                    None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
+                }
+            },
+            Some((t, _)) => {
+                use Expression::Nullary;
+                use NullaryOp::{Symbol, Integer, Real};
+                let rhs = match t {
+                    Token::Symbol(name) => Symbol(name),
+                    Token::Integer(int) => Integer(int),
+                    Token::Real(x) => Real(x),
+                    _ => unreachable!()
+                };
+                // interprete as multiplication
+                Ok(Expression::Binary(BinaryOp::Times, Box::new((left, Nullary(rhs)))))
+            },
+            None => Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()))
         }
     }
 
@@ -186,8 +203,7 @@ fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
     use Token::*;
     if let Some((token, _pos)) = token {
         match token {
-            Symbol(_) => PREC_SYMBOL,
-            Integer(_) => PREC_INTEGER,
+            Symbol(_) | Integer(_) | Real(_) => PREC_TIMES,
             Static(other) => {
                 if let Some(prec) = TOKEN_PREC.get(&other) {
                     *prec
@@ -197,7 +213,6 @@ fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
                     unreachable!("Internal error: token {:?}", other)
                 }
             },
-            _ => unimplemented!(),
         }
     } else {
         0
@@ -268,26 +283,23 @@ fn binary_op_to_expr<'a>(
     op: StaticToken,
     left: Expression<'a>,
     right: Expression<'a>,
-) -> Expression<'a> {
+) -> Result<Expression<'a>, ErrorKind> {
     use Expression::Binary;
     let op = *BINARY_OP_TO_EXPR.get(&op).expect(
         "Internal error: postfix operator to expression"
     );
     match assoc(op) {
-        Assoc::Right =>
-            if let Binary(left_op, left_args) = left {
-                if left_op == op {
-                    let (leftmost, middle) = *left_args;
-                    let right = Binary(op, Box::new((middle, right)));
-                    return Binary(op, Box::new((leftmost, right)));
-                } else {
-                    // restore left arg
-                    let left = Binary(left_op, left_args);
-                    return Binary(op, Box::new((left, right)));
-                }
-            },
         Assoc::Left => {},
-        Assoc::None => unreachable!(),
+        Assoc::Right => unreachable!(),
+        Assoc::None => if let Binary(left_op, left_args) = left {
+            if left_op == op {
+                return Err(ErrorKind::NonAssocOpChain);
+            } else {
+                // restore left arg
+                let left = Binary(left_op, left_args);
+                return Ok(Binary(op, Box::new((left, right))));
+            }
+        },
     };
-    Binary(op, Box::new((left, right)))
+    Ok(Binary(op, Box::new((left, right))))
 }

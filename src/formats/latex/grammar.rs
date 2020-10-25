@@ -49,7 +49,6 @@ pub const PREC_WEDGE: u32 = 66;
 pub const _PREC_XNOR: u32 = 43;
 pub const _PREC_XOR: u32 = 43;
 pub const PREC_SYMBOL: u32 = 0;
-pub const PREC_INTEGER: u32 = 0;
 pub const PREC_RIGHT_BRACKET: u32 = 0;
 pub const PREC_RIGHT_CURLY_BRACKET: u32 = 0;
 pub const PREC_RIGHT_ANGLE_BRACKET: u32 = 0;
