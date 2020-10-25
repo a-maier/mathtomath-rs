@@ -1,7 +1,7 @@
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::range::Range;
 
-use super::tokens::{BUILTIN, MAX_TOKEN_STR_LEN, StaticToken, Token};
+use super::tokens::{BUILTIN, MAX_TOKEN_STR_LEN, Token};
 
 use nom::{
     IResult,
@@ -224,7 +224,7 @@ mod tests {
         log_init();
 
         use Token::*;
-        use StaticToken::*;
+        use super::super::tokens::StaticToken::*;
 
         let expr =
             br" + 35\,,\qquad  - \textnormal{is{[a]}f]}_.q / \text{den}(4\times a^-3, &a[[1]]) + \ln(x_1,x_6);
@@ -268,7 +268,7 @@ mod tests {
         assert_eq!(p.next().unwrap().unwrap().0, Static(Subscript));
         assert_eq!(p.next().unwrap().unwrap().0, Integer(b"6" as _));
         assert_eq!(p.next().unwrap().unwrap().0, Static(RightBracket));
-        assert_eq!(p.next().unwrap().unwrap().0, Static(SemiColon));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Semicolon));
         assert_eq!(p.next().unwrap().unwrap().0, Symbol(b"foo" as _));
         assert_eq!(p.next().unwrap().unwrap().0, Static(Equal));
         assert_eq!(p.next().unwrap().unwrap().0, Static(LeftAngleBracket));
@@ -276,7 +276,7 @@ mod tests {
         assert_eq!(p.next().unwrap().unwrap().0, Static(Power));
         assert_eq!(p.next().unwrap().unwrap().0, Real(b".23" as _));
         assert_eq!(p.next().unwrap().unwrap().0, Static(RightAngleBracket));
-        assert_eq!(p.next().unwrap().unwrap().0, Static(SemiColon));
+        assert_eq!(p.next().unwrap().unwrap().0, Static(Semicolon));
         assert_eq!(p.next(), None);
     }
 }

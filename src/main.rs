@@ -93,7 +93,7 @@ fn parse(
             Ok(input) => formats::mathematica::parser::parse(input),
             Err(err) => Err(SyntaxError::from(err))
         },
-        Latex => unimplemented!(),
+        Latex => formats::latex::parser::parse(input),
     };
     res.map_err(|err| ParseError::new(get_context(input, err.pos()), err))
 }
