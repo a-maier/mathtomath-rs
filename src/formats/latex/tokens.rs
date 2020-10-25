@@ -398,6 +398,7 @@ pub(crate) const BUILTIN: phf::Map<&'static [u8], StaticToken> = phf_map!{
     br"\sim" => StaticToken::Sim,
     br"\simeq" => StaticToken::SimEqual,
     br"\approx" => StaticToken::Approx,
+    br"\*" => StaticToken::Times,
     br"\times" => StaticToken::Times,
     br"\ne" => StaticToken::Unequal,
     br"\neq" => StaticToken::Unequal,
