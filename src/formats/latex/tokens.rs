@@ -603,7 +603,6 @@ lazy_static! {
 
         StaticToken::And => Arity::Binary,
         StaticToken::Because => Arity::Binary,
-        StaticToken::LeftBracket => Arity::Binary,
         StaticToken::RightBracket => Arity::Binary,
         StaticToken::CenterDot => Arity::Binary,
         StaticToken::CircleDot => Arity::Binary,
