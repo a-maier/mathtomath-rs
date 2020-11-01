@@ -152,6 +152,12 @@ impl<'a> Lexer<'a> {
         self.pos
     }
 
+    pub fn skip_bytes(&mut self, pos: usize) {
+        let pos = std::cmp::min(pos, self.remaining_input.len());
+        self.remaining_input = &self.remaining_input[pos..];
+        self.pos += pos
+    }
+
     fn parse_success(&mut self, token: &'a [u8], new_remaining: &'a [u8]) {
         debug!("parsed '{:?}'", from_utf8(token));
         self.pos += token.len();

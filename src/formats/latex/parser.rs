@@ -193,8 +193,8 @@ impl<'a> Parser<'a> {
                     None => {
                         if let Some(closing) = CLOSING_BRACKET.get(&s) {
                             debug!("no operator found: treat as multiplication");
-                            let rhs = self.parse_bracket(next, *closing, pos)?;
                             trace!("left multiplier: {:?}", left);
+                            let rhs = self.parse_bracket(next, *closing, pos)?;
                             trace!("right multiplier: {:?}", rhs);
                             Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
                         } else {
@@ -203,19 +203,16 @@ impl<'a> Parser<'a> {
                     }
                 }
             },
-            Some((t, _)) => {
-                use Expression::Nullary;
-                use NullaryOp::{Symbol, Integer, Real};
-                let rhs = match t {
-                    Token::Symbol(name) => Symbol(name),
-                    Token::Integer(int) => Integer(int),
-                    Token::Real(x) => Real(x),
-                    _ => unreachable!()
-                };
+            Some((_, ref pos)) => {
                 debug!("no operator found: treat as multiplication");
                 trace!("left multiplier: {:?}", left);
+                // rewind lexer
+                self.lexer = Lexer::for_input(&self.input);
+                self.lexer.skip_bytes(pos.start);
+                *next = self.lexer.next().transpose()?;
+                let rhs = self.parse_with(next, PREC_TIMES)?;
                 trace!("right multiplier: {:?}", rhs);
-                Ok(Expression::Binary(BinaryOp::Times, Box::new((left, Nullary(rhs)))))
+                Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
             },
             None => Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()))
         }
