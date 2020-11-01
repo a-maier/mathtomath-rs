@@ -9,7 +9,7 @@ use nom::{
     branch::alt,
     character::complete::{char},
     bytes::complete::{tag, take_while, take_while1, take_until},
-    sequence::{preceded},
+    sequence::{delimited, preceded},
 };
 
 fn trim_left(i: &[u8]) -> &[u8] {
@@ -117,8 +117,14 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
     tag("DON'T KNOW HOW TO CREATE AN IRESULT ERROR OTHERWISE")(b"")
 }
 
+fn braced_whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (_, ws) = delimited(char('{'), whitespace, char('}'))(i)?;
+    Ok(reverse(i.split_at(ws.len() + 2)))
+}
+
 fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
     alt((
+        braced_whitespace,
         tag("&"),
         comment,
         ignored_command,
@@ -228,7 +234,7 @@ mod tests {
         use super::super::tokens::StaticToken::*;
 
         let expr =
-            br" + 35\,,\qquad  - \textnormal{is{[a]}f]}_.q / \text{den}(4\times a^-3, &a[[1]]) + \ln(x_1,x_6);
+            br" + 35\,,\qquad  - \textnormal{is{[a]}f]}_.q {}/ { }\text{den}(4\times a^-3, &a[[1]]) + \ln(x_1,x_6);
 % [ this is a comment
 \text{foo} =& \langle a^.23\rangle;
 ";
