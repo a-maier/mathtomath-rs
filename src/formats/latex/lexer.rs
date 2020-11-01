@@ -193,7 +193,7 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<(Token<'a>, Range<usize>), SyntaxError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        trace!("lexer called on {:?}", self.remaining_input);
+        trace!("lexer called on {:?}", from_utf8(self.remaining_input));
         loop {
             let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
             if ws.is_empty() { break }
