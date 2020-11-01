@@ -103,6 +103,7 @@ impl<'a> Parser<'a> {
                             trace!("looking for {:?}", closing);
                             // this is actually a bracket
                             let arg = self.parse_with(next, 0)?;
+                            trace!("argument {:?}", arg);
                             let next_token = next.as_ref().map(|(t, _pos)| t);
                             if next_token == Some(&Token::Static(*closing)) {
                                 *next = self.lexer.next().transpose()?;
@@ -192,7 +193,9 @@ impl<'a> Parser<'a> {
                     Token::Real(x) => Real(x),
                     _ => unreachable!()
                 };
-                // interprete as multiplication
+                debug!("no operator found: treat as multiplication");
+                trace!("left multiplier: {:?}", left);
+                trace!("right multiplier: {:?}", rhs);
                 Ok(Expression::Binary(BinaryOp::Times, Box::new((left, Nullary(rhs)))))
             },
             None => Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()))
@@ -264,6 +267,7 @@ fn prefix_op_to_expr(
     arg: Expression<'_>
 ) -> Expression<'_> {
     if op == StaticToken::Sqrt {
+        trace!("sqrt with arg {:?}", arg);
         Expression::Binary(BinaryOp::Function, Box::new((
             Expression::Nullary(NullaryOp::Sqrt), arg
         )))
