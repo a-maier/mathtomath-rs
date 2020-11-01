@@ -77,31 +77,57 @@ fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
     preceded(char('%'), take_until("\n"))(i)
 }
 
+lazy_static!{
+    pub(crate) static ref MAX_WS_LEN: usize = BUILTIN_WS.iter().map(|k| k.len()).max().unwrap();
+}
+
+pub(crate) const BUILTIN_WS: phf::Set<&'static [u8]> = phf_set!{
+    br" ",
+    br";",
+    br"<",
+    br",",
+    br"!",
+    br"\",
+    b"notag",
+    b"nonumber",
+    b"quad",
+    b"qquad",
+};
+
+lazy_static!{
+    pub(crate) static ref MAX_BRACKET_SIZE_LEN: usize = BRACKET_SIZES.iter().map(|k| k.len()).max().unwrap();
+}
+
+pub(crate) const BRACKET_SIZES: phf::Set<&'static [u8]> = phf_set!{
+    b"big",
+    b"Big",
+    b"bigg",
+    b"Bigg",
+    b"left",
+    b"right",
+};
+
 fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let mut bytes = i.iter();
     if bytes.next() == Some(&b'\\') {
-        if let Some(next) = bytes.next() {
-            if b" ;<,!".contains(next) {
-                return Ok(reverse(i.split_at(2)))
+        let rest = &i[1..];
+        let max_len = std::cmp::min(1 + *MAX_WS_LEN, i.len());
+        for str_len in (1..max_len).rev() {
+            if BUILTIN_WS.contains(&rest[..str_len]) {
+                return Ok(reverse(i.split_at(1 + str_len)))
             }
-            let rest = &i[1..];
-            // TODO: use static set
-            let ignored: [&[u8]; 10] = [
-                b"notag",
-                b"nonumber",
-                b"quad",
-                b"qquad",
-                b"big",
-                b"Big",
-                b"bigg",
-                b"Bigg",
-                b"left",
-                b"right",
-            ];
-            for ignored in ignored.iter() {
-                if rest.starts_with(ignored) {
-                    return Ok(reverse(i.split_at(1 + ignored.len())))
-                }
+        }
+        let max_len = std::cmp::min(1 + *MAX_BRACKET_SIZE_LEN, i.len());
+        for str_len in (1..max_len).rev() {
+            if BRACKET_SIZES.contains(&rest[..str_len]) {
+                let rest = &rest[str_len..];
+                let (rest, ws) = whitespace(rest).unwrap_or((rest, b"" as _));
+                let split_pos = if rest.starts_with(b".") {
+                    1 + str_len + ws.len() + 1
+                } else {
+                    1 + str_len + ws.len()
+                };
+                return Ok(reverse(i.split_at(split_pos)))
             }
         }
     }
