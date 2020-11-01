@@ -9,7 +9,7 @@ use nom::{
     branch::alt,
     character::complete::{char},
     bytes::complete::{tag, take_while, take_while1, take_until},
-    sequence::{delimited, preceded},
+    sequence::{delimited, preceded, separated_pair},
 };
 
 fn trim_left(i: &[u8]) -> &[u8] {
@@ -51,17 +51,8 @@ fn integer(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn real(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (rest, int) = integer(i).unwrap_or((i, b""));
-    let (rest, _) = char('.')(rest)?;
-    let (_rest, fract) = integer(rest).unwrap_or((rest, b""));
-    let len = int.len() + fract.len() + 1;
-    if len == 1 {
-        // evil hack: I don't know how to create an error, so just use
-        // an arbitrary failing parser
-        tag("DON'T KNOW HOW TO CREATE AN IRESULT ERROR OTHERWISE")(b"")
-    } else {
-        Ok(reverse(i.split_at(len)))
-    }
+    let (_, (ipart, fpart)) = separated_pair(integer, char('.'), integer)(i)?;
+    Ok(reverse(i.split_at(ipart.len() + fpart.len() + 1)))
 }
 
 pub(crate) fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
