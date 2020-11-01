@@ -196,15 +196,19 @@ impl<'a> Parser<'a> {
                         "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
                     ),
                     None => {
-                        if let Some(closing) = CLOSING_BRACKET.get(&s) {
-                            debug!("no operator found: treat as multiplication");
-                            trace!("left multiplier: {:?}", left);
-                            let rhs = self.parse_bracket(next, *closing, pos)?;
-                            trace!("right multiplier: {:?}", rhs);
-                            Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
+                        debug!("no operator found: treat as multiplication");
+                        trace!("left multiplier: {:?}", left);
+                        let rhs = if let Some(closing) = CLOSING_BRACKET.get(&s) {
+                            self.parse_bracket(next, *closing, pos)?
                         } else {
-                            Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
-                        }
+                            // rewind lexer
+                            self.lexer = Lexer::for_input(&self.input);
+                            self.lexer.skip_bytes(pos.start);
+                            *next = self.lexer.next().transpose()?;
+                            self.parse_with(next, PREC_TIMES)?
+                        };
+                        trace!("right multiplier: {:?}", rhs);
+                        Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
                     }
                 }
             },
