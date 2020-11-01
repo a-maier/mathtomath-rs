@@ -134,6 +134,29 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_bracket(
+        &mut self,
+        next: &mut Option<(Token<'a>, Range<usize>)>,
+        closing: StaticToken,
+        pos: &Range<usize>,
+    ) -> Result<Expression<'a>, SyntaxError> {
+        let next_token = next.as_ref().map(|(t, _pos)| t);
+        if next_token == Some(&Token::Static(closing)) {
+            *next = self.lexer.next().transpose()?;
+            return Ok(Expression::Nullary(NullaryOp::Empty));
+        }
+        let arg = self.parse_with(next, 0)?;
+        let next_token = next.as_ref().map(|(t, _pos)| t);
+        if next_token == Some(&Token::Static(closing)) {
+            *next = self.lexer.next().transpose()?;
+            Ok(arg)
+        } else {
+            let bracket = &self.input[pos.start..pos.end];
+            let bracket = std::str::from_utf8(bracket).unwrap();
+            Err(SyntaxError::new(Unmatched(bracket.to_owned()), pos.start))
+        }
+    }
+
     fn left(
         &mut self,
         token: Option<(Token<'a>, Range<usize>)>,
@@ -161,22 +184,8 @@ impl<'a> Parser<'a> {
                         )
                     },
                     Some(Function) => {
-                        let next_token = next.as_ref().map(|(t, _pos)| t);
-                        if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
-                            *next = self.lexer.next().transpose()?;
-                            let arg = Expression::Nullary(NullaryOp::Empty);
-                            return Ok(Expression::Binary(BinaryOp::Function, Box::new((left, arg))));
-                        }
-                        let right = self.parse_with(next, 0)?;
-                        let next_token = next.as_ref().map(|(t, _pos)| t);
-                        if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
-                            *next = self.lexer.next().transpose()?;
-                            Ok(Expression::Binary(BinaryOp::Function, Box::new((left, right))))
-                        } else {
-                            let bracket = &self.input[pos.start..pos.end];
-                            let bracket = std::str::from_utf8(bracket).unwrap();
-                            Err(SyntaxError::new(Unmatched(bracket.to_owned()), pos.start))
-                        }
+                        let arg = self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
+                        Ok(Expression::Binary(BinaryOp::Function, Box::new((left, arg))))
                     },
                     Some(arity) => unreachable!(
                         "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
