@@ -166,7 +166,7 @@ impl<'a> Parser<'a> {
         debug!("left called on token {:?}", token);
         match token {
             Some((Token::Static(StaticToken::Subscript), _)) => {
-                let right = self.parse_with(next, 0)?;
+                let right = self.parse_with(next, PREC_SUBSCRIPT)?;
                 let arg = Expression::Binary(BinaryOp::Sequence, Box::new((left, right)));
                 let head = Expression::Nullary(NullaryOp::Subscript);
                 Ok(Expression::Binary(BinaryOp::Function, Box::new((head, arg))))
