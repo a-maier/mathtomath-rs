@@ -100,7 +100,7 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
             ];
             for ignored in ignored.iter() {
                 if rest.starts_with(ignored) {
-                    return Ok(reverse(i.split_at(2 + ignored.len())))
+                    return Ok(reverse(i.split_at(1 + ignored.len())))
                 }
             }
         }
