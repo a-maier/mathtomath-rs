@@ -190,7 +190,17 @@ impl<'a> Parser<'a> {
                     Some(arity) => unreachable!(
                         "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
                     ),
-                    None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
+                    None => {
+                        if let Some(closing) = CLOSING_BRACKET.get(&s) {
+                            debug!("no operator found: treat as multiplication");
+                            let rhs = self.parse_bracket(next, *closing, pos)?;
+                            trace!("left multiplier: {:?}", left);
+                            trace!("right multiplier: {:?}", rhs);
+                            Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
+                        } else {
+                            Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
+                        }
+                    }
                 }
             },
             Some((t, _)) => {
