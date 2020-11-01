@@ -3,7 +3,7 @@ use super::grammar::*;
 use crate::arity::Arity;
 use crate::expression::*;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 pub(crate) enum Token<'a> {
@@ -526,24 +526,6 @@ lazy_static! {
         StaticToken::ArcCos => PREC_SYMBOL,
         StaticToken::ArcTan => PREC_SYMBOL,
         StaticToken::Subscript => PREC_SUBSCRIPT,
-    };
-}
-
-
-lazy_static! {
-    pub(crate) static ref UNKNOWN_TOKEN_PREC: HashSet<StaticToken> = hashset!{
-        StaticToken::Sim,
-        StaticToken::SupersetEqual,
-        StaticToken::SimEqual,
-        StaticToken::Sum,
-        StaticToken::CenterDot,
-        StaticToken::CircleDot,
-        StaticToken::NotSubsetEqual,
-        StaticToken::NotSupersetEqual,
-        StaticToken::Proportional,
-        StaticToken::SubsetEqual,
-        StaticToken::Congruent,
-        StaticToken::Vee,
     };
 }
 

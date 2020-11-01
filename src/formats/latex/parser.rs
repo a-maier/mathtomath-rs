@@ -1,7 +1,7 @@
 //TODO: code duplication
 use super::grammar::*;
 use super::lexer::Lexer;
-use super::tokens::{Token, StaticToken, TOKEN_PREC, TOKEN_EXPRESSION, UNKNOWN_TOKEN_PREC, NULL_ARITY, LEFT_ARITY, CLOSING_BRACKET, PREFIX_OP_TO_EXPR, POSTFIX_OP_TO_EXPR, BINARY_OP_TO_EXPR};
+use super::tokens::{Token, StaticToken, TOKEN_PREC, TOKEN_EXPRESSION, NULL_ARITY, LEFT_ARITY, CLOSING_BRACKET, PREFIX_OP_TO_EXPR, POSTFIX_OP_TO_EXPR, BINARY_OP_TO_EXPR};
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::expression::*;
 use crate::assoc::Assoc;
@@ -235,10 +235,9 @@ fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
             Static(other) => {
                 if let Some(prec) = TOKEN_PREC.get(&other) {
                     *prec
-                } else if UNKNOWN_TOKEN_PREC.contains(&other) {
-                    panic!("Internal error: unknown precedence of token {:?}", other)
                 } else {
-                    unreachable!("Internal error: token {:?}", other)
+                    // default to multiplication
+                    PREC_TIMES
                 }
             },
         }
