@@ -93,7 +93,7 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
             if b" ;<,!".contains(next) {
                 return Ok(reverse(i.split_at(2)))
             }
-            let rest = &i[2..];
+            let rest = &i[1..];
             // TODO: use static set
             let ignored: [&[u8]; 10] = [
                 b"notag",
