@@ -1,7 +1,7 @@
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::range::Range;
 
-use super::tokens::{BUILTIN, MAX_TOKEN_STR_LEN, Token};
+use super::tokens::{BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN, Token};
 
 use std::str::from_utf8;
 use nom::{
@@ -82,12 +82,6 @@ lazy_static!{
 }
 
 pub(crate) const BUILTIN_WS: phf::Set<&'static [u8]> = phf_set!{
-    br" ",
-    br";",
-    br"<",
-    br",",
-    br"!",
-    br"\",
     b"notag",
     b"nonumber",
     b"quad",
@@ -111,24 +105,26 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let mut bytes = i.iter();
     if bytes.next() == Some(&b'\\') {
         let rest = &i[1..];
-        let max_len = std::cmp::min(1 + *MAX_WS_LEN, i.len());
-        for str_len in (1..max_len).rev() {
-            if BUILTIN_WS.contains(&rest[..str_len]) {
-                return Ok(reverse(i.split_at(1 + str_len)))
-            }
-        }
-        let max_len = std::cmp::min(1 + *MAX_BRACKET_SIZE_LEN, i.len());
-        for str_len in (1..max_len).rev() {
-            if BRACKET_SIZES.contains(&rest[..str_len]) {
-                let rest = &rest[str_len..];
-                let (rest, ws) = whitespace(rest).unwrap_or((rest, b"" as _));
-                let split_pos = if rest.starts_with(b".") {
-                    1 + str_len + ws.len() + 1
-                } else {
-                    1 + str_len + ws.len()
-                };
-                return Ok(reverse(i.split_at(split_pos)))
-            }
+        match bytes.next() {
+            Some(next) if br" ;<,!\".contains(next) => {
+                return Ok(reverse(i.split_at(2)))
+            },
+            Some(_) => {
+                let (_, tag) = take_while1(|u: u8| u.is_ascii_alphabetic())(rest)?;
+                if BUILTIN_WS.contains(tag) {
+                    return Ok(reverse(i.split_at(1 + tag.len())))
+                } else if BRACKET_SIZES.contains(tag) {
+                    let rest = &rest[tag.len()..];
+                    let (rest, ws) = whitespace(rest).unwrap_or((rest, b"" as _));
+                    let split_pos = if rest.starts_with(b".") {
+                        1 + tag.len() + ws.len() + 1
+                    } else {
+                        1 + tag.len() + ws.len()
+                    };
+                    return Ok(reverse(i.split_at(split_pos)))
+                }
+            },
+            None => { }
         }
     }
     tag("DON'T KNOW HOW TO CREATE AN IRESULT ERROR OTHERWISE")(b"")
@@ -150,11 +146,19 @@ fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn builtin(i: &[u8]) -> Option<(Token<'static>, usize)>  {
-    let max_len = std::cmp::min(1 + *MAX_TOKEN_STR_LEN, i.len());
-    for token_str_len in (1..max_len).rev() {
-        trace!("looking for token with length {}", token_str_len);
-        if let Some(val) = BUILTIN.get(&i[..token_str_len]) {
-            return Some((Token::Static(*val), token_str_len))
+    if let Some((b'\\', rest)) = i.split_first() {
+        let wtf: IResult<&[u8], &[u8]> = take_while(|u: u8| u.is_ascii_alphabetic())(rest);
+        let (_rest, cmd) = wtf.unwrap();
+        if let Some(val) = BUILTIN_BACKSLASHED.get(cmd) {
+            return Some((Token::Static(*val), 1 + cmd.len()))
+        }
+    } else {
+        let max_len = std::cmp::min(1 + *MAX_TOKEN_STR_LEN, i.len());
+        for token_str_len in (1..max_len).rev() {
+            trace!("looking for token with length {}", token_str_len);
+            if let Some(val) = BUILTIN.get(&i[..token_str_len]) {
+                return Some((Token::Static(*val), token_str_len))
+            }
         }
     }
     None
