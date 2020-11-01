@@ -190,7 +190,19 @@ impl<'a> Parser<'a> {
                     },
                     Some(Function) => {
                         let arg = self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
-                        Ok(Expression::Binary(BinaryOp::Function, Box::new((left, arg))))
+                        let op = if let Expression::Binary(BinaryOp::Sequence, _) = arg {
+                            BinaryOp::Function
+                        } else {
+                            match left {
+                            Expression::Nullary(NullaryOp::Symbol(_)) => BinaryOp::Function,
+                            Expression::Binary(BinaryOp::Function, ref arg)
+                                if arg.0 == Expression::Nullary(NullaryOp::Subscript)
+                                ||arg.0 == Expression::Nullary(NullaryOp::Superscript)
+                                => BinaryOp::Function,
+                            _ => BinaryOp::Times
+                            }
+                        };
+                        Ok(Expression::Binary(op, Box::new((left, arg))))
                     },
                     Some(arity) => unreachable!(
                         "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
