@@ -1,4 +1,6 @@
 //TODO: code duplication
+use std::collections::HashMap;
+
 use super::grammar::*;
 use super::lexer::Lexer;
 use super::tokens::{Token, StaticToken, TOKEN_PREC, TOKEN_EXPRESSION, NULL_ARITY, LEFT_ARITY, CLOSING_BRACKET, PREFIX_OP_TO_EXPR, POSTFIX_OP_TO_EXPR, BINARY_OP_TO_EXPR};
@@ -83,7 +85,10 @@ impl<'a> Parser<'a> {
         debug!("null called on token {:?}", token);
         if let Some((tok, pos)) = token {
             match tok {
-                Token::Symbol(name) => Ok(Nullary(Symbol(name))),
+                Token::Symbol(name) => {
+                    let name = LATEX_SYMBOLS.get(&name).unwrap_or(&name);
+                    Ok(Nullary(Symbol(name)))
+                },
                 Token::Integer(int) => Ok(Nullary(Integer(int))),
                 Token::Real(x) => Ok(Nullary(Real(x))),
                 Token::Static(StaticToken::Frac) => {
@@ -327,4 +332,9 @@ fn binary_op_to_expr<'a>(
         },
     };
     Ok(Binary(op, Box::new((left, right))))
+}
+
+lazy_static! {
+    pub(crate) static ref LATEX_SYMBOLS: HashMap<&'static [u8], &'static [u8]> =
+        super::formatter::LATEX_SYMBOLS.iter().map(|(k, v)| (*v, *k)).collect();
 }
