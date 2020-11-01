@@ -526,6 +526,7 @@ lazy_static! {
         StaticToken::ArcCos => PREC_SYMBOL,
         StaticToken::ArcTan => PREC_SYMBOL,
         StaticToken::Sqrt => PREC_SYMBOL,
+        StaticToken::Subscript => PREC_SUBSCRIPT,
     };
 }
 

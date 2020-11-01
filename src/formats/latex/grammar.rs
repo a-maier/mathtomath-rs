@@ -71,6 +71,7 @@ pub const PREC_UMINUS: u32 = 70;
 pub const PREC_UPLUS: u32 = PREC_UMINUS;
 pub const PREC_TIMES: u32 = 62;
 pub const PREC_DEGREE: u32 = 90;
+pub const PREC_SUBSCRIPT: u32 = 100;
 
 pub fn assoc(op: BinaryOp) -> Assoc {
     use Assoc::*;

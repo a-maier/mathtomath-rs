@@ -141,6 +141,12 @@ impl<'a> Parser<'a> {
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("left called on token {:?}", token);
         match token {
+            Some((Token::Static(StaticToken::Subscript), _)) => {
+                let right = self.parse_with(next, 0)?;
+                let arg = Expression::Binary(BinaryOp::Sequence, Box::new((left, right)));
+                let head = Expression::Nullary(NullaryOp::Subscript);
+                Ok(Expression::Binary(BinaryOp::Function, Box::new((head, arg))))
+            },
             Some((Token::Static(s), ref pos)) => {
                 use Arity::*;
                 trace!("left arity for {:?}: {:?}", s, LEFT_ARITY.get(&s));
