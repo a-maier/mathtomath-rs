@@ -189,17 +189,26 @@ impl<'a> Parser<'a> {
                         )
                     },
                     Some(Function) => {
-                        let arg = self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
+                        let mut arg = self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
                         let op = if let Expression::Binary(BinaryOp::Sequence, _) = arg {
                             BinaryOp::Function
                         } else {
                             match left {
-                            Expression::Nullary(NullaryOp::Symbol(_)) => BinaryOp::Function,
-                            Expression::Binary(BinaryOp::Function, ref arg)
-                                if arg.0 == Expression::Nullary(NullaryOp::Subscript)
-                                ||arg.0 == Expression::Nullary(NullaryOp::Superscript)
-                                => BinaryOp::Function,
-                            _ => BinaryOp::Times
+                                Expression::Nullary(NullaryOp::Symbol(_)) => BinaryOp::Function,
+                                Expression::Binary(BinaryOp::Function, ref arg)
+                                    if arg.0 == Expression::Nullary(NullaryOp::Subscript)
+                                    ||arg.0 == Expression::Nullary(NullaryOp::Superscript)
+                                    => BinaryOp::Function,
+                                _ => {
+                                    debug!("ambiguous function parse, backtrack and parse as multiplication");
+                                    trace!("left multiplier: {:?}", left);
+                                    self.lexer = Lexer::for_input(&self.input);
+                                    self.lexer.skip_bytes(pos.start);
+                                    *next = self.lexer.next().transpose()?;
+                                    arg = self.parse_with(next, PREC_TIMES)?;
+                                    trace!("right multiplier: {:?}", arg);
+                                    BinaryOp::Times
+                                }
                             }
                         };
                         Ok(Expression::Binary(op, Box::new((left, arg))))
