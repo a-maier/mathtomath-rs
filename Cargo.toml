@@ -16,11 +16,11 @@ categories = ["mathematics", "parser-implementations"]
 aho-corasick = "0.7"
 clap = "2.33"
 confy = "0.4"
-env_logger = "0.7"
+env_logger = "0.8"
 lazy_static = "1.4"
 log = "0.4"
 maplit = "1.0"
-nom = "5"
+nom = "6.0"
 phf = { version = "0.8", features = ["macros"] }
 structopt = "0.3"
 subslice = "0.2"
