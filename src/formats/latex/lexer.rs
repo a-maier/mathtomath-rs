@@ -8,7 +8,7 @@ use nom::{
     IResult,
     branch::alt,
     character::complete::{char},
-    bytes::complete::{tag, take_while, take_while1, take_until},
+    bytes::complete::{tag, take, take_while, take_while1, take_until},
     sequence::{delimited, preceded, separated_pair},
 };
 
@@ -74,7 +74,8 @@ fn reverse<T,U>(tuple: (T, U)) -> (U, T) {
 }
 
 fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    preceded(char('%'), take_until("\n"))(i)
+    let rem = std::cmp::max(i.len(), 1) - 1;
+    preceded(char('%'), alt((take_until("\n"), take(rem))))(i)
 }
 
 lazy_static!{
@@ -314,5 +315,19 @@ mod tests {
         assert_eq!(p.next().unwrap().unwrap().0, Static(RightAngleBracket));
         assert_eq!(p.next().unwrap().unwrap().0, Static(Semicolon));
         assert_eq!(p.next(), None);
+    }
+
+    #[test]
+    fn tst_comment() {
+        log_init();
+
+        let expr = br"";
+        let mut p = Lexer::for_input(&*expr);
+        assert_eq!(p.next(), None);
+
+        let expr = br"% \nu \Bigg[ \frac{1}{\varepsilon}";
+        let mut p = Lexer::for_input(&*expr);
+        assert_eq!(p.next(), None);
+
     }
 }
