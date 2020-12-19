@@ -194,7 +194,23 @@ impl<'a> Parser<'a> {
                             BinaryOp::Function
                         } else {
                             match left {
-                                Expression::Nullary(NullaryOp::Symbol(_)) => BinaryOp::Function,
+                                Expression::Nullary(NullaryOp::Symbol(_))
+                                    | Expression::Nullary(NullaryOp::Log)
+                                    | Expression::Nullary(NullaryOp::Exp)
+                                    | Expression::Nullary(NullaryOp::Sin)
+                                    | Expression::Nullary(NullaryOp::Cos)
+                                    | Expression::Nullary(NullaryOp::Tan)
+                                    | Expression::Nullary(NullaryOp::Sinh)
+                                    | Expression::Nullary(NullaryOp::Cosh)
+                                    | Expression::Nullary(NullaryOp::Tanh)
+                                    | Expression::Nullary(NullaryOp::ASin)
+                                    | Expression::Nullary(NullaryOp::ACos)
+                                    | Expression::Nullary(NullaryOp::ATan)
+                                    | Expression::Nullary(NullaryOp::ASinh)
+                                    | Expression::Nullary(NullaryOp::ACosh)
+                                    | Expression::Nullary(NullaryOp::ATanh)
+                                    | Expression::Nullary(NullaryOp::Sqrt)
+                                    => BinaryOp::Function,
                                 Expression::Binary(BinaryOp::Function, ref arg)
                                     if arg.0 == Expression::Nullary(NullaryOp::Subscript)
                                     ||arg.0 == Expression::Nullary(NullaryOp::Superscript)
