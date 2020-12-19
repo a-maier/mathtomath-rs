@@ -157,7 +157,7 @@ fn builtin(i: &[u8]) -> Option<(Token<'static>, usize)>  {
             return Some((Token::Static(StaticToken::Times), 2))
         }
     } else {
-        let max_len = std::cmp::min(1 + *MAX_TOKEN_STR_LEN, i.len());
+        let max_len = 1 + std::cmp::min(*MAX_TOKEN_STR_LEN, i.len());
         for token_str_len in (1..max_len).rev() {
             trace!("looking for token with length {}", token_str_len);
             if let Some(val) = BUILTIN.get(&i[..token_str_len]) {
