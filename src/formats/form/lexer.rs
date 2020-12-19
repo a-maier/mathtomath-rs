@@ -90,7 +90,7 @@ fn word_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let letters = take_while1(is_alphabetic);
     let rest = take_while(is_alphanumeric);
     let maybe_underscore = opt(char('_'));
-    let word_symbol = tuple((maybe_dollar, letters, rest, maybe_underscore));
+    let mut word_symbol = tuple((maybe_dollar, letters, rest, maybe_underscore));
 
     let (_, (maybe_dollar, letters, alnum, maybe_underscore)) = word_symbol(i)?;
     let dollar_len = if maybe_dollar.is_some() {1} else {0};
@@ -102,7 +102,7 @@ fn word_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn bracket_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let symbol = delimited(
+    let mut symbol = delimited(
         char('['), many0(alt((is_not("[]"), bracket_symbol))), char(']')
     );
     let (_rest, symbol) = symbol(i)?;

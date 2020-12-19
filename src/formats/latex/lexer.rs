@@ -1,7 +1,7 @@
 use crate::error::{SyntaxError, ErrorKind::*};
 use crate::range::Range;
 
-use super::tokens::{BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN, Token};
+use super::tokens::{BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN, StaticToken, Token};
 
 use std::str::from_utf8;
 use nom::{
@@ -151,6 +151,8 @@ fn builtin(i: &[u8]) -> Option<(Token<'static>, usize)>  {
         let (_rest, cmd) = wtf.unwrap();
         if let Some(val) = BUILTIN_BACKSLASHED.get(cmd) {
             return Some((Token::Static(*val), 1 + cmd.len()))
+        } else if let Some(b'*') = rest.first() {
+            return Some((Token::Static(StaticToken::Times), 2))
         }
     } else {
         let max_len = std::cmp::min(1 + *MAX_TOKEN_STR_LEN, i.len());
