@@ -75,7 +75,8 @@ fn reverse<T,U>(tuple: (T, U)) -> (U, T) {
 
 fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let rem = std::cmp::max(i.len(), 1) - 1;
-    preceded(char('%'), alt((take_until("\n"), take(rem))))(i)
+    let (_rest, comment) = preceded(char('%'), alt((take_until("\n"), take(rem))))(i)?;
+    Ok(reverse(i.split_at(comment.len() + 1)))
 }
 
 lazy_static!{
