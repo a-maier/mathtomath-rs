@@ -263,7 +263,7 @@ mod tests {
         let expr =
             br" + 35\,,\qquad  - \textnormal{is{[a]}f]}_.q {}/ { }\text{den}(4\times a^-3, &a[[1]]) + \ln(x_1,x_6);
 % [ this is a comment
-\text{foo} =& \langle a^.23\rangle;
+\text{foo} =& \langle a^0.23\rangle;
 ";
         let mut p = Lexer::for_input(&*expr);
         assert_eq!(p.next().unwrap().unwrap().0, Static(Plus));
@@ -308,7 +308,7 @@ mod tests {
         assert_eq!(p.next().unwrap().unwrap().0, Static(LeftAngleBracket));
         assert_eq!(p.next().unwrap().unwrap().0, Symbol(b"a" as _));
         assert_eq!(p.next().unwrap().unwrap().0, Static(Power));
-        assert_eq!(p.next().unwrap().unwrap().0, Real(b".23" as _));
+        assert_eq!(p.next().unwrap().unwrap().0, Real(b"0.23" as _));
         assert_eq!(p.next().unwrap().unwrap().0, Static(RightAngleBracket));
         assert_eq!(p.next().unwrap().unwrap().0, Static(Semicolon));
         assert_eq!(p.next(), None);
