@@ -351,6 +351,30 @@ fn binary_op_to_expr<'a>(
 }
 
 lazy_static! {
-    pub(crate) static ref LATEX_SYMBOLS: HashMap<&'static [u8], &'static [u8]> =
-        super::formatter::LATEX_SYMBOLS.iter().map(|(k, v)| (*v, *k)).collect();
+    pub(crate) static ref LATEX_SYMBOLS: HashMap<&'static [u8], &'static [u8]> = {
+        let mut map: HashMap<&'static [u8], &'static [u8]>= super::formatter::LATEX_SYMBOLS
+            .iter()
+            .map(|(k, v)| (*v, *k))
+            .collect();
+        //\varGamma \varDelta \varTheta \varLambda \varXi \varPi \varSigma \varPhi \varUpsilon \varOmega
+        //\varepsilon \varkappa \varpi \varrho \varsigma \vartheta \varphi
+        map.insert(br"\varGamma",  map[&br"\Gamma"[..]]);
+        map.insert(br"\varDelta",  map[&br"\Delta"[..]]);
+        map.insert(br"\varTheta",  map[&br"\Theta"[..]]);
+        map.insert(br"\varLambda",  map[&br"\Lambda"[..]]);
+        map.insert(br"\varXi",  map[&br"\Xi"[..]]);
+        map.insert(br"\varPi",  map[&br"\Pi"[..]]);
+        map.insert(br"\varSigma",  map[&br"\Sigma"[..]]);
+        map.insert(br"\varPhi",  map[&br"\Phi"[..]]);
+        map.insert(br"\varUpsilon",  map[&br"\Upsilon"[..]]);
+        map.insert(br"\varOmega",  map[&br"\Omega"[..]]);
+        map.insert(br"\varepsilon",  map[&br"\epsilon"[..]]);
+        map.insert(br"\varkappa",  map[&br"\kappa"[..]]);
+        map.insert(br"\varpi",  map[&br"\pi"[..]]);
+        map.insert(br"\varrho",  map[&br"\rho"[..]]);
+        map.insert(br"\varsigma",  map[&br"\sigma"[..]]);
+        map.insert(br"\vartheta",  map[&br"\theta"[..]]);
+        map.insert(br"\varphi",  map[&br"\phi"[..]]);
+        map
+    };
 }
