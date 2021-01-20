@@ -223,6 +223,11 @@ impl<'a> Lexer<'a> {
             return Some(Ok(token))
         }
         if let Ok((remaining_input, token)) = symbol(self.remaining_input) {
+            // dirty fix in case not everything that was digested is actually
+            // part of the token (e.g. for \text{token})
+            if remaining_input.len() + token.len() < self.remaining_input.len() {
+                self.pos += self.remaining_input.len() - remaining_input.len() - token.len();
+            }
             self.parse_success(token, remaining_input);
             return Some(Ok(Token::Symbol(token)))
         }
