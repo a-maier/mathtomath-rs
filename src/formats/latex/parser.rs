@@ -11,6 +11,21 @@ use crate::arity::Arity;
 use crate::range::Range;
 use crate::error::ErrorKind;
 
+#[derive(Clone,Eq,PartialEq,Debug)]
+enum ParseError<'a> {
+    Syntax(SyntaxError),
+    MulParsedAsFunction(Expression<'a>),
+}
+
+// impl std::error::Error for ParseError {
+// }
+
+impl<'a> std::convert::From<SyntaxError> for ParseError<'a> {
+    fn from(err: SyntaxError) -> Self {
+        ParseError::Syntax(err)
+    }
+}
+
 pub fn parse(input: &[u8]) -> Result<Expression<'_>, SyntaxError> {
     let mut parser = Parser::new(input);
     parser.parse()
@@ -69,7 +84,20 @@ impl<'a> Parser<'a> {
         while right_binding_power < left_binding_power(*next) {
             token = *next;
             *next = self.lexer.next().transpose()?;
-            left = self.left(token, &mut next, left)?;
+            left = match self.left(token, &mut next, left) {
+                Err(ParseError::MulParsedAsFunction(left)) => {
+                    debug!("ambiguous function parse, backtrack and parse as multiplication");
+                    self.lexer = Lexer::for_input(&self.input);
+                    let (_, pos) = token.unwrap();
+                    self.lexer.skip_bytes(pos.start);
+                    let times = Token::Static(StaticToken::Times);
+                    let range = Range{start: pos.start, end: pos.start};
+                    *next = Some((times, range));
+                    left
+                },
+                Err(ParseError::Syntax(err)) => return Err(err),
+                Ok(expr) => expr,
+            };
         }
         debug!("end parser call with rbp {}", right_binding_power);
         Ok(left)
@@ -167,7 +195,7 @@ impl<'a> Parser<'a> {
         token: Option<(Token<'a>, Range<usize>)>,
         next: &mut Option<(Token<'a>, Range<usize>)>,
         left: Expression<'a>,
-    ) -> Result<Expression<'a>, SyntaxError> {
+    ) -> Result<Expression<'a>, ParseError<'a>> {
         debug!("left called on token {:?}", token);
         match token {
             Some((Token::Static(StaticToken::Subscript), _)) => {
@@ -185,11 +213,11 @@ impl<'a> Parser<'a> {
                         let right_binding_power = left_binding_power(token);
                         let right = self.parse_with(next, right_binding_power)?;
                         binary_op_to_expr(s, left, right).map_err(
-                            |e| SyntaxError::new(e, pos.start)
+                            |e| ParseError::Syntax(SyntaxError::new(e, pos.start))
                         )
                     },
                     Some(Function) => {
-                        let mut arg = self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
+                        let arg = self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
                         let op = if let Expression::Binary(BinaryOp::Sequence, _) = arg {
                             BinaryOp::Function
                         } else {
@@ -215,16 +243,7 @@ impl<'a> Parser<'a> {
                                     if arg.0 == Expression::Nullary(NullaryOp::Subscript)
                                     ||arg.0 == Expression::Nullary(NullaryOp::Superscript)
                                     => BinaryOp::Function,
-                                _ => {
-                                    debug!("ambiguous function parse, backtrack and parse as multiplication");
-                                    trace!("left multiplier: {:?}", left);
-                                    self.lexer = Lexer::for_input(&self.input);
-                                    self.lexer.skip_bytes(pos.start);
-                                    *next = self.lexer.next().transpose()?;
-                                    arg = self.parse_with(next, PREC_TIMES)?;
-                                    trace!("right multiplier: {:?}", arg);
-                                    BinaryOp::Times
-                                }
+                                _ => return Err(ParseError::MulParsedAsFunction(left))
                             }
                         };
                         Ok(Expression::Binary(op, Box::new((left, arg))))
@@ -260,7 +279,7 @@ impl<'a> Parser<'a> {
                 trace!("right multiplier: {:?}", rhs);
                 Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
             },
-            None => Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()))
+            None => Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()).into())
         }
     }
 
