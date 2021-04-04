@@ -581,6 +581,7 @@ lazy_static! {
 lazy_static! {
     pub(crate) static ref LEFT_ARITY: HashMap<StaticToken, Arity> = hashmap!{
         StaticToken::LeftBracket => Arity::Function,
+        StaticToken::LeftList => Arity::Function,
 
         StaticToken::DoubleFactorial => Arity::Unary,
         StaticToken::ConjugateTranspose => Arity::Unary,
