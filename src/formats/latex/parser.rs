@@ -279,7 +279,7 @@ impl<'a> Parser<'a> {
                 trace!("right multiplier: {:?}", rhs);
                 Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
             },
-            None => Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()).into())
+            None => Err(SyntaxError::new(EarlyEof(LEFT_TOKENS), self.pos()).into())
         }
     }
 

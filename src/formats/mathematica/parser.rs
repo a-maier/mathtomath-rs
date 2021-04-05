@@ -165,7 +165,7 @@ impl<'a> Parser<'a> {
                 None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
             }
         } else {
-            Err(SyntaxError::new(EarlyEOF(LEFT_TOKENS), self.pos()))
+            Err(SyntaxError::new(EarlyEof(LEFT_TOKENS), self.pos()))
         }
     }
 

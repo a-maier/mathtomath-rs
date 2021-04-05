@@ -8,7 +8,7 @@ pub struct SyntaxError {
 
 #[derive(Clone,Eq,PartialEq,Debug)]
 pub enum ErrorKind {
-    EarlyEOF(&'static str),
+    EarlyEof(&'static str),
     ExpectLeft(&'static str),
     ExpectNull(&'static str),
     NonAssocOpChain,
@@ -35,7 +35,7 @@ impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ErrorKind::*;
         match self.kind {
-            EarlyEOF(s) => write!(f, "unexpected end of expression, expected {}", s),
+            EarlyEof(s) => write!(f, "unexpected end of expression, expected {}", s),
             ExpectLeft(s) | ExpectNull(s) => write!(f, "unexpected token, expected {}", s),
             NotAToken => write!(f, "unknown token"),
             Unmatched(ref b) => write!(f, "unmatched bracket {}", b),

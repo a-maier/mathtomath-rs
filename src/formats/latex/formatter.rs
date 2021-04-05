@@ -80,19 +80,19 @@ impl Printer {
         self.line.clear();
         if self.cfg.bracket_sizing == LeftRight {
             for _ in 0..self.open_brackets {
-                self.line.write(br"\right.")?;
+                self.line.write_all(br"\right.")?;
             }
         }
         if !self.cfg.tags {
-            self.line.write(br"\notag")?;
+            self.line.write_all(br"\notag")?;
         }
-        self.line.write(NEWLINE)?;
+        self.line.write_all(NEWLINE)?;
         for _ in 0..self.open_brackets {
-            self.line.write(self.cfg.indent_with.as_bytes())?;
+            self.line.write_all(self.cfg.indent_with.as_bytes())?;
         }
         if self.cfg.bracket_sizing == LeftRight {
             for _ in 0..self.open_brackets {
-                self.line.write(br"\left.")?;
+                self.line.write_all(br"\left.")?;
             }
         }
         self.cur_line_len = 0.;
@@ -108,7 +108,7 @@ impl Printer {
             self.write_line(w)?;
             self.add_linebreak()?;
         }
-        self.line.write(buf)?;
+        self.line.write_all(buf)?;
         Ok(())
     }
 
