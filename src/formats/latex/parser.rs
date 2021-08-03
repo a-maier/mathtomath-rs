@@ -87,7 +87,7 @@ impl<'a> Parser<'a> {
             left = match self.left(token, &mut next, left) {
                 Err(ParseError::MulParsedAsFunction(left)) => {
                     debug!("ambiguous function parse, backtrack and parse as multiplication");
-                    self.lexer = Lexer::for_input(&self.input);
+                    self.lexer = Lexer::for_input(self.input);
                     let (_, pos) = token.unwrap();
                     self.lexer.skip_bytes(pos.start);
                     let times = Token::Static(StaticToken::Times);
@@ -258,7 +258,7 @@ impl<'a> Parser<'a> {
                             self.parse_bracket(next, *closing, pos)?
                         } else {
                             // rewind lexer
-                            self.lexer = Lexer::for_input(&self.input);
+                            self.lexer = Lexer::for_input(self.input);
                             self.lexer.skip_bytes(pos.start);
                             *next = self.lexer.next().transpose()?;
                             self.parse_with(next, PREC_TIMES)?
@@ -272,7 +272,7 @@ impl<'a> Parser<'a> {
                 debug!("no operator found: treat as multiplication");
                 trace!("left multiplier: {:?}", left);
                 // rewind lexer
-                self.lexer = Lexer::for_input(&self.input);
+                self.lexer = Lexer::for_input(self.input);
                 self.lexer.skip_bytes(pos.start);
                 *next = self.lexer.next().transpose()?;
                 let rhs = self.parse_with(next, PREC_TIMES)?;

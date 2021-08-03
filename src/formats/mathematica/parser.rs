@@ -9,7 +9,7 @@ use crate::arity::Arity;
 use crate::range::Range;
 
 pub fn parse(input: &str) -> Result<Expression<'_>, SyntaxError> {
-    let mut parser = Parser::new(&input);
+    let mut parser = Parser::new(input);
     parser.parse()
 }
 
