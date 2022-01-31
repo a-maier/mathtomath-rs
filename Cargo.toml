@@ -14,7 +14,7 @@ categories = ["mathematics", "parser-implementations"]
 
 [dependencies]
 aho-corasick = "0.7"
-clap = "3.0"
+clap = { version = "3.0", features = ["derive"] }
 confy = "0.4"
 env_logger = "0.9"
 lazy_static = "1.4"
@@ -22,7 +22,6 @@ log = "0.4"
 maplit = "1.0"
 nom = "7.0.0-alpha1"
 phf = { version = "0.10", features = ["macros"] }
-structopt = "0.3"
 subslice = "0.2"
 regex = "1.5"
 ansi_term = "0.12"

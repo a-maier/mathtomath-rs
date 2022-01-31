@@ -25,35 +25,32 @@ use std::{
     str::from_utf8,
 };
 use ansi_term::Colour::Red;
-use clap::arg_enum;
-use structopt::StructOpt;
+use clap::{ArgEnum, Parser};
 
-arg_enum! {
-    #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
-    enum Format {
-        Form,
-        Latex,
-        Mathematica,
-    }
+#[derive(ArgEnum,Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+enum Format {
+    Form,
+    Latex,
+    Mathematica,
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "mathtomath", about = "Convert mathematical expressions between formats.")]
+#[derive(Debug, Parser)]
+#[clap(about = "Convert mathematical expressions between formats.")]
 struct Opt {
     /// Suppress output messages.
-    #[structopt(short, long)]
+    #[clap(short, long)]
     quiet: bool,
 
     /// Specify the format of the input expressions.
-    #[structopt(short, long, aliases = &["if", "in", "from"], possible_values = &Format::variants(), case_insensitive = true)]
+    #[clap(short, long, aliases = &["if", "in", "from"], arg_enum)]
     informat: Format,
 
     /// Specify the format to which the input expressions will be converted.
-    #[structopt(short, long, aliases = &["of", "out", "to"], possible_values = &Format::variants(), case_insensitive = true)]
+    #[clap(short, long, aliases = &["of", "out", "to"], arg_enum)]
     outformat: Format,
 
     /// File from which to read expressions. If omitted, expressions will be read from the command line.
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     file: Option<PathBuf>,
 }
 
@@ -137,7 +134,7 @@ fn main() {
 fn run() -> Result<(), Error> {
     env_logger::init();
 
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     if opt.file == None && !opt.quiet {
         println!("Please enter an expression (finish with <Enter><Ctrl-d>):");
