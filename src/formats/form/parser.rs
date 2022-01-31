@@ -205,6 +205,7 @@ lazy_static! {
         StaticToken::Wildcard => PREC_WILDCARD,
         StaticToken::Log => PREC_SYMBOL,
         StaticToken::Exp => PREC_SYMBOL,
+        StaticToken::Sign => PREC_SYMBOL,
         StaticToken::Sin => PREC_SYMBOL,
         StaticToken::Cos => PREC_SYMBOL,
         StaticToken::Tan => PREC_SYMBOL,

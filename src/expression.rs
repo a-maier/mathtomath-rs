@@ -27,6 +27,7 @@ pub enum NullaryOp<'a> {
     Infinity,
     Log,
     Exp,
+    Sign,
     Sin,
     Cos,
     Tan,

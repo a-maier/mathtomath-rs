@@ -155,6 +155,7 @@ fn properties(
             NullaryOp::Infinity => (PREC_ATOM, Nullary("Infinity")),
             NullaryOp::Log => (PREC_ATOM, Nullary("Log")),
             NullaryOp::Exp => (PREC_ATOM, Nullary("Exp")),
+            NullaryOp::Sign => (PREC_ATOM, Nullary("Sign")),
             NullaryOp::Sin => (PREC_ATOM, Nullary("Sin")),
             NullaryOp::Cos => (PREC_ATOM, Nullary("Cos")),
             NullaryOp::Tan => (PREC_ATOM, Nullary("Tan")),

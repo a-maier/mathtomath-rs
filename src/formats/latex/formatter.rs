@@ -355,6 +355,7 @@ impl Printer {
                     NullaryOp::Infinity => Nullary(b"\\infty"),
                     NullaryOp::Log => Nullary(b"\\log"),
                     NullaryOp::Exp => Nullary(b"\\exp"),
+                    NullaryOp::Sign => Nullary(b"\\sgn"),
                     NullaryOp::Sin => Nullary(b"\\sin"),
                     NullaryOp::Cos => Nullary(b"\\cos"),
                     NullaryOp::Tan => Nullary(b"\\tan"),

@@ -226,6 +226,7 @@ impl<'a> Parser<'a> {
                                     | Expression::Nullary(NullaryOp::Log)
                                     | Expression::Nullary(NullaryOp::Exp)
                                     | Expression::Nullary(NullaryOp::Sin)
+                                    | Expression::Nullary(NullaryOp::Sign)
                                     | Expression::Nullary(NullaryOp::Cos)
                                     | Expression::Nullary(NullaryOp::Tan)
                                     | Expression::Nullary(NullaryOp::Sinh)

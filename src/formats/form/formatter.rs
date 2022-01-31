@@ -145,6 +145,7 @@ fn properties(
             NullaryOp::I => (PREC_ATOM, Nullary(b"i_")),
             NullaryOp::Log => (PREC_ATOM, Nullary(b"ln_")),
             NullaryOp::Exp => (PREC_ATOM, Nullary(b"exp_")),
+            NullaryOp::Sign => (PREC_ATOM, Nullary(b"sig_")),
             NullaryOp::Sin => (PREC_ATOM, Nullary(b"sin_")),
             NullaryOp::Cos => (PREC_ATOM, Nullary(b"cos_")),
             NullaryOp::Tan => (PREC_ATOM, Nullary(b"tan_")),
