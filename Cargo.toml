@@ -1,14 +1,12 @@
 [package]
 name = "mathtomath"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Andreas Maier <andreas.martin.maier@desy.de>"]
 edition = "2021"
 description = "Convert mathematical expressions between different formats"
 license = "GPL-3.0-or-later"
 readme = "Readme.md"
-#keywords = ["math", "algebra"]
 categories = ["mathematics", "parser-implementations"]
-#repository = "https://github.com/a-maier/series-rust"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
