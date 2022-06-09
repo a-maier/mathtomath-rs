@@ -369,6 +369,7 @@ impl Printer {
                     NullaryOp::ACosh => Nullary(b"\\arccosh"),
                     NullaryOp::ATanh => Nullary(b"\\arctanh"),
                     NullaryOp::Sqrt => Nullary(b"\\sqrt"),
+                    NullaryOp::Ellipsis => Nullary(b"\\dots"),
                     unknown => UnknownNullary(unknown),
                 };
                 (PREC_ATOM, kind, 0)

@@ -85,6 +85,7 @@ pub(crate) enum StaticToken {
     // DownTee,
     // DownTeeArrow,
     Element,
+    Ellipsis,
     Equal,
     // EqualTilde,
     // Equilibrium,
@@ -344,6 +345,7 @@ pub(crate) const BUILTIN_BACKSLASHED: phf::Map<&'static [u8], StaticToken> = phf
     b"cosh" => StaticToken::Cosh,
     b"cup" => StaticToken::Union,
     b"dagger" => StaticToken::ConjugateTranspose,
+    b"dots" => StaticToken::Ellipsis,
     b"equiv" => StaticToken::Equivalent,
     b"exists" => StaticToken::Exists,
     b"exp" => StaticToken::Exp,
@@ -554,6 +556,7 @@ lazy_static! {
         StaticToken::ArcSin => Arity::Nullary,
         StaticToken::ArcCos => Arity::Nullary,
         StaticToken::ArcTan => Arity::Nullary,
+        StaticToken::Ellipsis => Arity::Nullary,
 
         // brackets
         StaticToken::LeftAngleBracket => Arity::Unary,
@@ -682,6 +685,7 @@ lazy_static! {
         StaticToken::ArcTan => NullaryOp::ATan,
         StaticToken::Sqrt => NullaryOp::Sqrt,
         StaticToken::Subscript => NullaryOp::Subscript,
+        StaticToken::Ellipsis => NullaryOp::Ellipsis,
     };
 }
 
