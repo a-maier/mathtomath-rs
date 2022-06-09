@@ -33,6 +33,12 @@ fn format<W: io::Write>(
     use ExpressionKind::*;
     match prop.kind {
         Empty => (),
+        String(sym) => {
+            warn!("Encountered string {:?}, which FORM does not support", std::str::from_utf8(sym));
+            w.write_all(b"[\"")?;
+            w.write_all(sym)?;
+            w.write_all(b"\"]")?;
+        },
         Symbol(sym) => {
             if is_symbol(sym) {
                 w.write_all(sym)?;
@@ -118,6 +124,7 @@ struct ExpressionProperties<'a> {
 enum ExpressionKind<'a> {
     Empty,
     Integer(&'a [u8]),
+    String(&'a [u8]),
     Symbol(&'a [u8]),
     Nullary(&'static [u8]),
     Prefix(&'static [u8], Expression<'a>),
@@ -140,6 +147,7 @@ fn properties(
             NullaryOp::Empty => (PREC_ATOM, Empty),
             NullaryOp::Integer(i) => (PREC_ATOM, Integer(i)),
             NullaryOp::Symbol(s) => (PREC_ATOM, Symbol(s)),
+            NullaryOp::String(s) => (PREC_ATOM, String(s)),
             NullaryOp::Ellipsis => (PREC_ATOM, Nullary(b"...")),
             NullaryOp::Pi => (PREC_ATOM, Nullary(b"pi_")),
             NullaryOp::I => (PREC_ATOM, Nullary(b"i_")),
