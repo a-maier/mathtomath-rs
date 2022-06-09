@@ -6,6 +6,7 @@ use nom::{
     IResult,
     branch::alt,
     character::complete::{char, none_of},
+    combinator::opt,
     bytes::complete::{escaped, is_not, tag, take_while, take_while1, take_until},
     sequence::{delimited, tuple},
 };
@@ -35,9 +36,9 @@ fn not_quote(i: &str) -> IResult<&str, &str> {
 fn string(i: &str) -> IResult<&str, &str> {
     delimited(
         char('"'),
-        not_quote,
+        opt(not_quote),
         char('"'),
-    )(i)
+    )(i).map(|(rest, string)| (rest, string.unwrap_or(&"")))
 }
 
 
