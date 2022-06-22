@@ -74,17 +74,17 @@ impl<'a> Parser<'a> {
 
     fn parse_with(
         &mut self,
-        mut next: &mut Option<(Token<'a>, Range<usize>)>,
+        next: &mut Option<(Token<'a>, Range<usize>)>,
         right_binding_power: u32
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("parser called with rbp {}", right_binding_power);
         let mut token = *next;
         *next = self.lexer.next().transpose()?;
-        let mut left = self.null(token, &mut next)?;
+        let mut left = self.null(token, next)?;
         while right_binding_power < left_binding_power(*next) {
             token = *next;
             *next = self.lexer.next().transpose()?;
-            left = match self.left(token, &mut next, left) {
+            left = match self.left(token, next, left) {
                 Err(ParseError::MulParsedAsFunction(left)) => {
                     debug!("ambiguous function parse, backtrack and parse as multiplication");
                     self.lexer = Lexer::for_input(self.input);

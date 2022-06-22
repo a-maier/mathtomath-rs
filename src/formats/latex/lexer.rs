@@ -129,7 +129,7 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
                 let (_, tag) = take_while1(|u: u8| u.is_ascii_alphabetic())(rest)?;
                 if BUILTIN_WS.contains(tag) {
                     let (tag, rest) = i.split_at(1 + tag.len());
-                    if tag == br"\displaybreak" && DISPLAYBREAK_ARG.is_match(&rest) {
+                    if tag == br"\displaybreak" && DISPLAYBREAK_ARG.is_match(rest) {
                         return Ok(reverse(i.split_at(3 + tag.len())))
                     } else {
                         return Ok((rest, tag))

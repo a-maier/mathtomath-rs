@@ -59,17 +59,17 @@ impl<'a> Parser<'a> {
 
     fn parse_with(
         &mut self,
-        mut next: &mut Option<(Token<'a>, Range<usize>)>,
+        next: &mut Option<(Token<'a>, Range<usize>)>,
         right_binding_power: u32
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("parser called with rbp {}", right_binding_power);
         let mut token = *next;
         *next = self.lexer.next().transpose()?;
-        let mut left = self.null(token, &mut next)?;
+        let mut left = self.null(token, next)?;
         while right_binding_power < left_binding_power(*next) {
             token = *next;
             *next = self.lexer.next().transpose()?;
-            left = self.left(token, &mut next, left)?;
+            left = self.left(token, next, left)?;
         }
         debug!("end parser call with rbp {}", right_binding_power);
         Ok(left)

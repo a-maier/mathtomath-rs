@@ -38,7 +38,7 @@ fn string(i: &str) -> IResult<&str, &str> {
         char('"'),
         opt(not_quote),
         char('"'),
-    )(i).map(|(rest, string)| (rest, string.unwrap_or(&"")))
+    )(i).map(|(rest, string)| (rest, string.unwrap_or("")))
 }
 
 
