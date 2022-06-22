@@ -84,6 +84,7 @@ lazy_static!{
 }
 
 pub(crate) const BUILTIN_WS: phf::Set<&'static [u8]> = phf_set!{
+    b"displaybreak",
     b"notag",
     b"nonumber",
     b"quad",
@@ -112,6 +113,11 @@ pub(crate) const BRACKET_SIZES: phf::Set<&'static [u8]> = phf_set!{
 };
 
 fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
+    use regex::bytes::Regex;
+    lazy_static! {
+        static ref DISPLAYBREAK_ARG: Regex = Regex::new(r"^\[[0-4]\]").unwrap();
+    }
+
     let mut bytes = i.iter();
     if bytes.next() == Some(&b'\\') {
         let rest = &i[1..];
@@ -122,7 +128,12 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
             Some(_) => {
                 let (_, tag) = take_while1(|u: u8| u.is_ascii_alphabetic())(rest)?;
                 if BUILTIN_WS.contains(tag) {
-                    return Ok(reverse(i.split_at(1 + tag.len())))
+                    let (tag, rest) = i.split_at(1 + tag.len());
+                    if tag == br"\displaybreak" && DISPLAYBREAK_ARG.is_match(&rest) {
+                        return Ok(reverse(i.split_at(3 + tag.len())))
+                    } else {
+                        return Ok((rest, tag))
+                    }
                 } else if BRACKET_SIZES.contains(tag) {
                     let rest = &rest[tag.len()..];
                     let (rest, ws) = whitespace(rest).unwrap_or((rest, b"" as _));
