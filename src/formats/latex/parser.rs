@@ -270,15 +270,28 @@ impl<'a> Parser<'a> {
                 }
             },
             Some((_, ref pos)) => {
-                debug!("no operator found: treat as multiplication");
-                trace!("left multiplier: {:?}", left);
                 // rewind lexer
                 self.lexer = Lexer::for_input(self.input);
                 self.lexer.skip_bytes(pos.start);
                 *next = self.lexer.next().transpose()?;
-                let rhs = self.parse_with(next, PREC_TIMES)?;
-                trace!("right multiplier: {:?}", rhs);
-                Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
+                if is_operator_like_fn(&left) {
+                    debug!("no operator found: treat as application of {left:?} to argument");
+                    let arg = self.parse_with(next, PREC_SQRT)?;
+                    trace!("argument: {arg:?}");
+                    if let Expression::Binary(BinaryOp::Power, args) = left {
+                        let (fun, pow) = *args;
+                        let fun = Expression::Binary(BinaryOp::Function, Box::new((fun, arg)));
+                        Ok(Expression::Binary(BinaryOp::Power, Box::new((fun, pow))))
+                    } else {
+                        Ok(Expression::Binary(BinaryOp::Function, Box::new((left, arg))))
+                    }
+                } else {
+                    debug!("no operator found: treat as multiplication");
+                    trace!("left multiplier: {:?}", left);
+                    let rhs = self.parse_with(next, PREC_TIMES)?;
+                    trace!("right multiplier: {:?}", rhs);
+                    Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
+                }
             },
             None => Err(SyntaxError::new(EarlyEof(LEFT_TOKENS), self.pos()).into())
         }
@@ -286,6 +299,22 @@ impl<'a> Parser<'a> {
 
     fn pos(&self) -> usize {
         self.lexer.pos()
+    }
+}
+
+fn is_operator_like_fn(expr: &Expression<'_>) -> bool {
+    use Expression::*;
+    use NullaryOp::*;
+    match expr {
+        Nullary(
+            Log | Sin | Cos | Tan | Sinh | Cosh | Tanh | ASin | ACos |
+            ATan | ASinh | ACosh | ATanh
+        ) => true,
+        Binary(BinaryOp::Power, args) => matches!(args.0, Nullary(
+            Log | Sin | Cos | Tan | Sinh | Cosh | Tanh | ASin | ACos |
+            ATan | ASinh | ACosh | ATanh
+        )),
+        _ => false
     }
 }
 
