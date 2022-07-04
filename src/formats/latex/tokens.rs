@@ -354,6 +354,7 @@ pub(crate) const BUILTIN_BACKSLASHED: phf::Map<&'static [u8], StaticToken> = phf
     b"exp" => StaticToken::Exp,
     b"forall" => StaticToken::ForAll,
     b"frac" => StaticToken::Frac,
+    b"tfrac" => StaticToken::Frac,
     b"ge" => StaticToken::GreaterEqual,
     b"geq" => StaticToken::GreaterEqual,
     b"gg" => StaticToken::GreaterGreater,
