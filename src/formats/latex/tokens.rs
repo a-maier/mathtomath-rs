@@ -3,7 +3,7 @@ use super::grammar::*;
 use crate::arity::Arity;
 use crate::expression::*;
 
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
 pub(crate) enum Token<'a> {
@@ -289,6 +289,9 @@ pub(crate) enum StaticToken {
     // ArcCosh,
     // ArcTanh,
     Subscript,
+    Calligraphic,
+    OverHat,
+    OverTilde,
 }
 
 lazy_static!{
@@ -424,6 +427,10 @@ pub(crate) const BUILTIN_BACKSLASHED: phf::Map<&'static [u8], StaticToken> = phf
     b"varsupsetneq" => StaticToken::NotSupersetEqual,
     b"vee" => StaticToken::Vee,
     b"wedge" => StaticToken::Wedge,
+    b"hat" => StaticToken::OverHat,
+    b"widehat" => StaticToken::OverHat,
+    b"mathcal" => StaticToken::Calligraphic,
+    b"tilde" => StaticToken::OverTilde,
 };
 
 lazy_static! {
@@ -534,6 +541,9 @@ lazy_static! {
         // StaticToken::ArcCos => PREC_SYMBOL,
         // StaticToken::ArcTan => PREC_SYMBOL,
         StaticToken::Subscript => PREC_SUBSCRIPT,
+        StaticToken::OverHat => PREC_SQRT,
+        StaticToken::Calligraphic => PREC_SQRT,
+        StaticToken::OverTilde => PREC_SQRT,
     };
 }
 
@@ -579,7 +589,9 @@ lazy_static! {
         StaticToken::PlusMinus => Arity::Unary,
         StaticToken::Minus => Arity::Unary,
         StaticToken::MinusPlus => Arity::Unary,
-        //StaticToken::Sqrt => Arity::Unary,
+        StaticToken::OverHat => Arity::Unary,
+        StaticToken::Calligraphic => Arity::Unary,
+        StaticToken::OverTilde => Arity::Unary,
     };
 }
 
@@ -592,6 +604,9 @@ lazy_static! {
 
         StaticToken::DoubleFactorial => Arity::Unary,
         StaticToken::ConjugateTranspose => Arity::Unary,
+        StaticToken::OverHat => Arity::Unary,
+        StaticToken::OverTilde => Arity::Unary,
+        StaticToken::Calligraphic => Arity::Unary,
 
         StaticToken::And => Arity::Binary,
         StaticToken::Because => Arity::Binary,
@@ -684,6 +699,8 @@ lazy_static! {
         StaticToken::ArcCos => NullaryOp::ACos,
         StaticToken::ArcTan => NullaryOp::ATan,
         StaticToken::Sqrt => NullaryOp::Sqrt,
+        StaticToken::OverHat => NullaryOp::OverHat,
+        StaticToken::OverTilde => NullaryOp::OverTilde,
         StaticToken::Subscript => NullaryOp::Subscript,
         StaticToken::Ellipsis => NullaryOp::Ellipsis,
     };
@@ -701,6 +718,7 @@ lazy_static! {
         StaticToken::PlusMinus => UnaryOp::UPlusMinus,
         StaticToken::Minus => UnaryOp::UMinus,
         StaticToken::MinusPlus => UnaryOp::UMinusPlus,
+        StaticToken::Calligraphic => UnaryOp::Calligraphic,
     };
 }
 

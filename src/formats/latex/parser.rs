@@ -239,6 +239,8 @@ impl<'a> Parser<'a> {
                                     | Expression::Nullary(NullaryOp::ACosh)
                                     | Expression::Nullary(NullaryOp::ATanh)
                                     | Expression::Nullary(NullaryOp::Sqrt)
+                                    | Expression::Nullary(NullaryOp::OverHat)
+                                    | Expression::Nullary(NullaryOp::OverTilde)
                                     => BinaryOp::Function,
                                 Expression::Binary(BinaryOp::Function, ref arg)
                                     if arg.0 == Expression::Nullary(NullaryOp::Subscript)
@@ -376,16 +378,22 @@ fn prefix_op_to_expr(
     op: StaticToken,
     arg: Expression<'_>
 ) -> Expression<'_> {
-    if op == StaticToken::Sqrt {
-        trace!("sqrt with arg {:?}", arg);
-        Expression::Binary(BinaryOp::Function, Box::new((
-            Expression::Nullary(NullaryOp::Sqrt), arg
-        )))
-    } else {
-        let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
-            "Internal error: prefix operator to expression"
-        );
-        Expression::Unary(op, Box::new(arg))
+    match op {
+        StaticToken::Sqrt
+            | StaticToken::OverHat
+            | StaticToken::OverTilde
+            => {
+                trace!("{op:?} with arg {:?}", arg);
+                Expression::Binary(BinaryOp::Function, Box::new((
+                    Expression::Nullary(*TOKEN_EXPRESSION.get(&op).unwrap()), arg
+                )))
+            },
+        _ => {
+            let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
+                "Internal error: prefix operator to expression"
+            );
+            Expression::Unary(op, Box::new(arg))
+        }
     }
 }
 

@@ -43,6 +43,8 @@ pub enum NullaryOp<'a> {
     Sqrt,
     Subscript,
     Superscript,
+    OverHat,
+    OverTilde,
 }
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
@@ -81,6 +83,7 @@ pub enum UnaryOp {
     DoubleFactorial,
     SuperDagger,
     PureFunction,
+    Calligraphic,
 }
 
 #[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]

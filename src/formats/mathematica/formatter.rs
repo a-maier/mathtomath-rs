@@ -91,6 +91,26 @@ fn format<W: io::Write>(
             warn!("Symbol '{:?}' does not exist in Mathematica", sym);
             write!(w, "{:?}", sym)?;
         },
+        UnknownUnary(
+            UnaryOp::Calligraphic,
+            Expression::Nullary(NullaryOp::Symbol(name))
+        ) => {
+            if name.iter().find(|c| c.is_ascii_alphabetic()).is_some() {
+                for c in name {
+                    if c.is_ascii_lowercase() {
+                        let mut c = *c;
+                        c.make_ascii_uppercase();
+                        write!(w, r"\[Script{}]", c as char)?;
+                    } else if c.is_ascii_uppercase() {
+                        write!(w, r"\[ScriptCaptial{}]", *c as char)?;
+                    } else {
+                        w.write_all(std::slice::from_ref(c))?;
+                    }
+                }
+            } else {
+                w.write_all(name)?;
+            }
+        },
         UnknownUnary(sym, arg) => {
             warn!("Unary operator '{:?}' does not exist in Mathematica", sym);
             write!(w, "{:?}[", sym)?;
