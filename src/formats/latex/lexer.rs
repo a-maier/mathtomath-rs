@@ -7,7 +7,7 @@ use std::str::from_utf8;
 use nom::{
     IResult,
     branch::alt,
-    character::complete::{char},
+    character::complete::char,
     bytes::complete::{tag, take, take_while, take_while1, take_until},
     sequence::{delimited, preceded, separated_pair},
 };
@@ -89,6 +89,7 @@ pub(crate) const BUILTIN_WS: phf::Set<&'static [u8]> = phf_set!{
     b"nonumber",
     b"quad",
     b"qquad",
+    b"null",
 };
 
 lazy_static!{
