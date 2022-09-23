@@ -95,7 +95,7 @@ fn format<W: io::Write>(
             UnaryOp::Calligraphic,
             Expression::Nullary(NullaryOp::Symbol(name))
         ) => {
-            if name.iter().find(|c| c.is_ascii_alphabetic()).is_some() {
+            if name.iter().any(|c| c.is_ascii_alphabetic()) {
                 for c in name {
                     if c.is_ascii_lowercase() {
                         let mut c = *c;

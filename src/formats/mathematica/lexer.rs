@@ -12,7 +12,7 @@ use nom::{
 };
 
 fn integer(i: &str) -> IResult<&str, &str> {
-    take_while1(|c: char| c.is_digit(10))(i)
+    take_while1(|c: char| c.is_ascii_digit())(i)
 }
 
 fn real(i: &str) -> IResult<&str, &str> {
