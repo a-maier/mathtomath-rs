@@ -77,22 +77,32 @@ pub fn assoc(op: BinaryOp) -> Assoc {
     use Assoc::*;
     match op {
         BinaryOp::Power => None,
-        _ => Left
+        _ => Left,
     }
 }
 
 pub fn is_left_bracket(expr: &[u8]) -> bool {
     matches!(
         expr,
-        b"(" | b"[" | b"\\{" | b"\\langle" | b"\\lceil" | b"\\lfloor"
-            | b"|" | b"\\|"
+        b"(" | b"["
+            | b"\\{"
+            | b"\\langle"
+            | b"\\lceil"
+            | b"\\lfloor"
+            | b"|"
+            | b"\\|"
     )
 }
 
 pub fn is_right_bracket(expr: &[u8]) -> bool {
     matches!(
         expr,
-        b"|" | b"\\|" | b")" | b"]" | b"\\}"
-            | b"\\rangle" | b"\\rceil" | b"\\rfloor"
+        b"|" | b"\\|"
+            | b")"
+            | b"]"
+            | b"\\}"
+            | b"\\rangle"
+            | b"\\rceil"
+            | b"\\rfloor"
     )
 }

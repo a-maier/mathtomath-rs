@@ -5,7 +5,7 @@ use crate::expression::*;
 
 use std::collections::{HashMap, HashSet};
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) enum Token<'a> {
     Symbol(&'a [u8]),
     Integer(&'a [u8]),
@@ -14,7 +14,7 @@ pub(crate) enum Token<'a> {
     Static(StaticToken),
 }
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) enum StaticToken {
     Pattern,
     TagSet,
@@ -353,7 +353,7 @@ pub(crate) const MAX_TOKEN_STR_LEN: usize = 3;
 // ```
 // see https://www.robertjacobson.dev/defining-the-wolfram-language-part-1-finding-operators
 // some frequent ascii tokens added by hand
-pub(crate) const STR_TO_TOKEN: phf::Map<&'static str, StaticToken> = phf_map!{
+pub(crate) const STR_TO_TOKEN: phf::Map<&'static str, StaticToken> = phf_map! {
     "+=" => StaticToken::AddTo,
     "|" => StaticToken::Alternatives,
     "&&" => StaticToken::And,
@@ -683,7 +683,7 @@ pub(crate) const STR_TO_TOKEN: phf::Map<&'static str, StaticToken> = phf_map!{
     "⊻" => StaticToken::Xor,
 };
 
-pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static str, StaticToken> = phf_map!{
+pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static str, StaticToken> = phf_map! {
     "E" => StaticToken::E,
     "I" => StaticToken::I,
     "Infinity" => StaticToken::Infinity,
@@ -917,7 +917,6 @@ lazy_static! {
         StaticToken::Sqrt => PREC_SYMBOL,
     };
 }
-
 
 lazy_static! {
     pub(crate) static ref UNKNOWN_TOKEN_PREC: HashSet<StaticToken> = hashset!{
@@ -1398,7 +1397,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref CLOSING_BRACKET: HashMap<StaticToken, StaticToken> = hashmap!{
+    pub(crate) static ref CLOSING_BRACKET: HashMap<StaticToken, StaticToken> = hashmap! {
         StaticToken::LeftAngleBracket  => StaticToken::RightAngleBracket,
         StaticToken::LeftAssociation   => StaticToken::RightAssociation,
         StaticToken::LeftBracket       => StaticToken::RightBracket,
@@ -1412,7 +1411,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref TOKEN_EXPRESSION: HashMap<StaticToken, NullaryOp<'static>> = hashmap!{
+    pub(crate) static ref TOKEN_EXPRESSION: HashMap<StaticToken, NullaryOp<'static>> = hashmap! {
         StaticToken::E => NullaryOp::E,
         StaticToken::I => NullaryOp::I,
         StaticToken::Pi => NullaryOp::Pi,
@@ -1439,7 +1438,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref PREFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap!{
+    pub(crate) static ref PREFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap! {
         StaticToken::Decrement => UnaryOp::PrefixDecrement,
         StaticToken::Increment => UnaryOp::PrefixIncrement,
         StaticToken::Del => UnaryOp::Del,
@@ -1461,7 +1460,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref POSTFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap!{
+    pub(crate) static ref POSTFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap! {
         StaticToken::Blank => UnaryOp::Wildcard,
         StaticToken::BlankNullSequence => UnaryOp::Many0Wildcard,
         StaticToken::BlankSequence => UnaryOp::ManyWildcard,
@@ -1478,7 +1477,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref BINARY_OP_TO_EXPR: HashMap<StaticToken, BinaryOp> = hashmap!{
+    pub(crate) static ref BINARY_OP_TO_EXPR: HashMap<StaticToken, BinaryOp> = hashmap! {
         StaticToken::Pattern => BinaryOp::Pattern,
         StaticToken::TagSet => BinaryOp::TagSet,
         StaticToken::TagSetDelayed => BinaryOp::TagSetDelayed,

@@ -1,16 +1,18 @@
-use crate::error::{SyntaxError, ErrorKind::*};
+use crate::error::{ErrorKind::*, SyntaxError};
 use crate::range::Range;
 
-use super::tokens::{BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN, StaticToken, Token};
-
-use std::str::from_utf8;
-use nom::{
-    IResult,
-    branch::alt,
-    character::complete::char,
-    bytes::complete::{tag, take, take_while, take_while1, take_until},
-    sequence::{delimited, preceded, separated_pair},
+use super::tokens::{
+    StaticToken, Token, BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN,
 };
+
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take, take_until, take_while, take_while1},
+    character::complete::char,
+    sequence::{delimited, preceded, separated_pair},
+    IResult,
+};
+use std::str::from_utf8;
 
 fn trim_left(i: &[u8]) -> &[u8] {
     let pos = i.iter().position(|b| !b.is_ascii_whitespace());
@@ -34,15 +36,15 @@ fn parse_arg(i: &[u8]) -> IResult<&[u8], &[u8]> {
                     b'}' => {
                         open_braces -= 1;
                         if open_braces == 0 {
-                            return Ok((&i[n+2..], &i[1..=n]))
+                            return Ok((&i[n + 2..], &i[1..=n]));
                         }
-                    },
+                    }
                     _ => {}
                 }
             }
             tag("DON'T KNOW HOW TO CREATE AN IRESULT ERROR OTHERWISE")(b"")
-        },
-        Some(_) => Ok(reverse(i.split_at(1)))
+        }
+        Some(_) => Ok(reverse(i.split_at(1))),
     }
 }
 
@@ -59,7 +61,10 @@ pub(crate) fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
     match i.split_first() {
         Some((c, _)) if c.is_ascii_alphabetic() => Ok(reverse(i.split_at(1))),
         _ => {
-            let (rest, c) = preceded(char('\\'), take_while(|c: u8| c.is_ascii_alphabetic()))(i)?;
+            let (rest, c) = preceded(
+                char('\\'),
+                take_while(|c: u8| c.is_ascii_alphabetic()),
+            )(i)?;
             if c.starts_with(b"text") {
                 parse_arg(rest)
             } else {
@@ -69,21 +74,23 @@ pub(crate) fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
     }
 }
 
-fn reverse<T,U>(tuple: (T, U)) -> (U, T) {
+fn reverse<T, U>(tuple: (T, U)) -> (U, T) {
     (tuple.1, tuple.0)
 }
 
 fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let rem = std::cmp::max(i.len(), 1) - 1;
-    let (_rest, comment) = preceded(char('%'), alt((take_until("\n"), take(rem))))(i)?;
+    let (_rest, comment) =
+        preceded(char('%'), alt((take_until("\n"), take(rem))))(i)?;
     Ok(reverse(i.split_at(comment.len() + 1)))
 }
 
-lazy_static!{
-    pub(crate) static ref MAX_WS_LEN: usize = BUILTIN_WS.iter().map(|k| k.len()).max().unwrap();
+lazy_static! {
+    pub(crate) static ref MAX_WS_LEN: usize =
+        BUILTIN_WS.iter().map(|k| k.len()).max().unwrap();
 }
 
-pub(crate) const BUILTIN_WS: phf::Set<&'static [u8]> = phf_set!{
+pub(crate) const BUILTIN_WS: phf::Set<&'static [u8]> = phf_set! {
     b"displaybreak",
     b"notag",
     b"nonumber",
@@ -92,11 +99,12 @@ pub(crate) const BUILTIN_WS: phf::Set<&'static [u8]> = phf_set!{
     b"null",
 };
 
-lazy_static!{
-    pub(crate) static ref MAX_BRACKET_SIZE_LEN: usize = BRACKET_SIZES.iter().map(|k| k.len()).max().unwrap();
+lazy_static! {
+    pub(crate) static ref MAX_BRACKET_SIZE_LEN: usize =
+        BRACKET_SIZES.iter().map(|k| k.len()).max().unwrap();
 }
 
-pub(crate) const BRACKET_SIZES: phf::Set<&'static [u8]> = phf_set!{
+pub(crate) const BRACKET_SIZES: phf::Set<&'static [u8]> = phf_set! {
     b"big",
     b"Big",
     b"bigg",
@@ -125,28 +133,32 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
         match bytes.next() {
             Some(next) if br" ;<,!\".contains(next) => {
                 return Ok(reverse(i.split_at(2)))
-            },
+            }
             Some(_) => {
-                let (_, tag) = take_while1(|u: u8| u.is_ascii_alphabetic())(rest)?;
+                let (_, tag) =
+                    take_while1(|u: u8| u.is_ascii_alphabetic())(rest)?;
                 if BUILTIN_WS.contains(tag) {
                     let (tag, rest) = i.split_at(1 + tag.len());
-                    if tag == br"\displaybreak" && DISPLAYBREAK_ARG.is_match(rest) {
-                        return Ok(reverse(i.split_at(3 + tag.len())))
+                    if tag == br"\displaybreak"
+                        && DISPLAYBREAK_ARG.is_match(rest)
+                    {
+                        return Ok(reverse(i.split_at(3 + tag.len())));
                     } else {
-                        return Ok((rest, tag))
+                        return Ok((rest, tag));
                     }
                 } else if BRACKET_SIZES.contains(tag) {
                     let rest = &rest[tag.len()..];
-                    let (rest, ws) = whitespace(rest).unwrap_or((rest, b"" as _));
+                    let (rest, ws) =
+                        whitespace(rest).unwrap_or((rest, b"" as _));
                     let split_pos = if rest.starts_with(b".") {
                         1 + tag.len() + ws.len() + 1
                     } else {
                         1 + tag.len() + ws.len()
                     };
-                    return Ok(reverse(i.split_at(split_pos)))
+                    return Ok(reverse(i.split_at(split_pos)));
                 }
-            },
-            None => { }
+            }
+            None => {}
         }
     }
     tag("DON'T KNOW HOW TO CREATE AN IRESULT ERROR OTHERWISE")(b"")
@@ -167,27 +179,28 @@ fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
     ))(i)
 }
 
-fn builtin(i: &[u8]) -> Option<(Token<'static>, usize)>  {
+fn builtin(i: &[u8]) -> Option<(Token<'static>, usize)> {
     if let Some((b'\\', rest)) = i.split_first() {
-        let wtf: IResult<&[u8], &[u8]> = take_while(|u: u8| u.is_ascii_alphabetic())(rest);
+        let wtf: IResult<&[u8], &[u8]> =
+            take_while(|u: u8| u.is_ascii_alphabetic())(rest);
         let (_rest, cmd) = wtf.unwrap();
         if let Some(val) = BUILTIN_BACKSLASHED.get(cmd) {
-            return Some((Token::Static(*val), 1 + cmd.len()))
+            return Some((Token::Static(*val), 1 + cmd.len()));
         } else if let Some(b'*') = rest.first() {
-            return Some((Token::Static(StaticToken::Times), 2))
+            return Some((Token::Static(StaticToken::Times), 2));
         }
     }
     let max_len = 1 + std::cmp::min(*MAX_TOKEN_STR_LEN, i.len());
     for token_str_len in (1..max_len).rev() {
         trace!("looking for token with length {}", token_str_len);
         if let Some(val) = BUILTIN.get(&i[..token_str_len]) {
-            return Some((Token::Static(*val), token_str_len))
+            return Some((Token::Static(*val), token_str_len));
         }
     }
     None
 }
 
-#[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) struct Lexer<'a> {
     remaining_input: &'a [u8],
     pos: usize,
@@ -195,7 +208,7 @@ pub(crate) struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub(crate) fn for_input(input: &'a [u8]) -> Lexer<'a> {
-        Lexer{
+        Lexer {
             remaining_input: input,
             pos: 0,
         }
@@ -223,25 +236,29 @@ impl<'a> Lexer<'a> {
         }
         if let Ok((remaining_input, token)) = real(self.remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::Real(token)))
+            return Some(Ok(Token::Real(token)));
         }
         if let Ok((remaining_input, token)) = integer(self.remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::Integer(token)))
+            return Some(Ok(Token::Integer(token)));
         }
         if let Some((token, token_str_len)) = builtin(self.remaining_input) {
-            let (token_str, rest) = self.remaining_input.split_at(token_str_len);
+            let (token_str, rest) =
+                self.remaining_input.split_at(token_str_len);
             self.parse_success(token_str, rest);
-            return Some(Ok(token))
+            return Some(Ok(token));
         }
         if let Ok((remaining_input, token)) = symbol(self.remaining_input) {
             // dirty fix in case not everything that was digested is actually
             // part of the token (e.g. for \text{token})
-            if remaining_input.len() + token.len() < self.remaining_input.len() {
-                self.pos += self.remaining_input.len() - remaining_input.len() - token.len();
+            if remaining_input.len() + token.len() < self.remaining_input.len()
+            {
+                self.pos += self.remaining_input.len()
+                    - remaining_input.len()
+                    - token.len();
             }
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::Symbol(token)))
+            return Some(Ok(Token::Symbol(token)));
         }
         let err = SyntaxError::new(NotAToken, self.pos());
         self.remaining_input = b"";
@@ -256,14 +273,23 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         trace!("lexer called on {:?}", from_utf8(self.remaining_input));
         loop {
-            let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
-            if ws.is_empty() { break }
+            let (remaining_input, ws) =
+                whitespace(self.remaining_input).unwrap();
+            if ws.is_empty() {
+                break;
+            }
             self.parse_success(ws, remaining_input);
         }
         let old_pos = self.pos;
         if let Some(t) = self.next_nospace() {
             let res = match t {
-                Ok(token) => Ok((token, Range{start: old_pos, end: self.pos})),
+                Ok(token) => Ok((
+                    token,
+                    Range {
+                        start: old_pos,
+                        end: self.pos,
+                    },
+                )),
                 Err(err) => Err(err),
             };
             Some(res)
@@ -285,8 +311,8 @@ mod tests {
     fn tst_lexer() {
         log_init();
 
-        use Token::*;
         use super::super::tokens::StaticToken::*;
+        use Token::*;
 
         let expr =
             br" + 35\,,\qquad  - \textnormal{is{[a]}f]}_.q {}/ { }\text{den}(4\times a^-3, &a[[1]]) + \ln(x_1,x_6);
@@ -353,6 +379,5 @@ mod tests {
         let expr = br"% \nu \Bigg[ \frac{1}{\varepsilon}";
         let mut p = Lexer::for_input(&*expr);
         assert_eq!(p.next(), None);
-
     }
 }

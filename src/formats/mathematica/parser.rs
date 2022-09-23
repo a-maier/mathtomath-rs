@@ -1,11 +1,15 @@
 //TODO: code duplication
 use super::grammar::*;
 use super::lexer::Lexer;
-use super::tokens::{Token, StaticToken, TOKEN_PREC, TOKEN_EXPRESSION, UNKNOWN_TOKEN_PREC, NULL_ARITY, LEFT_ARITY, CLOSING_BRACKET, PREFIX_OP_TO_EXPR, POSTFIX_OP_TO_EXPR, BINARY_OP_TO_EXPR};
-use crate::error::{SyntaxError, ErrorKind::*};
-use crate::expression::*;
-use crate::assoc::Assoc;
+use super::tokens::{
+    StaticToken, Token, BINARY_OP_TO_EXPR, CLOSING_BRACKET, LEFT_ARITY,
+    NULL_ARITY, POSTFIX_OP_TO_EXPR, PREFIX_OP_TO_EXPR, TOKEN_EXPRESSION,
+    TOKEN_PREC, UNKNOWN_TOKEN_PREC,
+};
 use crate::arity::Arity;
+use crate::assoc::Assoc;
+use crate::error::{ErrorKind::*, SyntaxError};
+use crate::expression::*;
 use crate::range::Range;
 
 pub fn parse(input: &str) -> Result<Expression<'_>, SyntaxError> {
@@ -13,7 +17,7 @@ pub fn parse(input: &str) -> Result<Expression<'_>, SyntaxError> {
     parser.parse()
 }
 
-#[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 struct Parser<'a> {
     lexer: Lexer<'a>,
     input: &'a str,
@@ -25,7 +29,7 @@ const LEFT_TOKENS: &str =
 impl<'a> Parser<'a> {
     fn new(input: &'a str) -> Self {
         let lexer = Lexer::for_input(input);
-        Parser{lexer, input}
+        Parser { lexer, input }
     }
 
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
@@ -35,23 +39,22 @@ impl<'a> Parser<'a> {
         match next {
             None => Ok(res),
             Some((token, pos)) => {
-                use Token::Static;
                 use StaticToken::*;
+                use Token::Static;
                 match token {
                     Static(RightAngleBracket)
-                        | Static(RightAssociation)
-                        | Static(RightBracket)
-                        | Static(RightCeiling)
-                        | Static(RightFloor)
-                        | Static(RightSquareBracket)
-                        | Static(RightPart)
-                        | Static(RightList)
-                        | Static(RightTee)
-                        => {
-                            let bracket = self.input[pos.start..pos.end].to_owned();
-                            Err(SyntaxError::new(Unmatched(bracket), pos.start))
-                        },
-                    _ => Err(SyntaxError::new(RemainingToken, pos.start))
+                    | Static(RightAssociation)
+                    | Static(RightBracket)
+                    | Static(RightCeiling)
+                    | Static(RightFloor)
+                    | Static(RightSquareBracket)
+                    | Static(RightPart)
+                    | Static(RightList)
+                    | Static(RightTee) => {
+                        let bracket = self.input[pos.start..pos.end].to_owned();
+                        Err(SyntaxError::new(Unmatched(bracket), pos.start))
+                    }
+                    _ => Err(SyntaxError::new(RemainingToken, pos.start)),
                 }
             }
         }
@@ -60,7 +63,7 @@ impl<'a> Parser<'a> {
     fn parse_with(
         &mut self,
         next: &mut Option<(Token<'a>, Range<usize>)>,
-        right_binding_power: u32
+        right_binding_power: u32,
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("parser called with rbp {}", right_binding_power);
         let mut token = *next;
@@ -78,7 +81,7 @@ impl<'a> Parser<'a> {
     fn null(
         &mut self,
         token: Option<(Token<'a>, Range<usize>)>,
-        next: &mut Option<(Token<'a>, Range<usize>)>
+        next: &mut Option<(Token<'a>, Range<usize>)>,
     ) -> Result<Expression<'a>, SyntaxError> {
         use Expression::*;
         use NullaryOp::*;
@@ -142,12 +145,16 @@ impl<'a> Parser<'a> {
                     let right_binding_power = left_binding_power(token);
                     let right = self.parse_with(next, right_binding_power)?;
                     Ok(binary_op_to_expr(s, left, right))
-                },
+                }
                 Some(Function) => {
                     let next_token = next.as_ref().map(|(t, _pos)| t);
                     if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
                         *next = self.lexer.next().transpose()?;
-                        return Ok(function_to_expr(s, left, Expression::Nullary(NullaryOp::Empty)));
+                        return Ok(function_to_expr(
+                            s,
+                            left,
+                            Expression::Nullary(NullaryOp::Empty),
+                        ));
                     }
                     let right = self.parse_with(next, 0)?;
                     let next_token = next.as_ref().map(|(t, _pos)| t);
@@ -158,11 +165,14 @@ impl<'a> Parser<'a> {
                         let bracket = self.input[pos.start..pos.end].to_owned();
                         Err(SyntaxError::new(Unmatched(bracket), pos.start))
                     }
-                },
+                }
                 Some(arity) => unreachable!(
-                    "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
+                    "Internal error: {:?} has LEFT_ARITY {:?}",
+                    s, arity
                 ),
-                None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
+                None => {
+                    Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
+                }
             }
         } else {
             Err(SyntaxError::new(EarlyEof(LEFT_TOKENS), self.pos()))
@@ -185,11 +195,14 @@ fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
                 if let Some(prec) = TOKEN_PREC.get(&other) {
                     *prec
                 } else if UNKNOWN_TOKEN_PREC.contains(&other) {
-                    panic!("Internal error: unknown precedence of token {:?}", other)
+                    panic!(
+                        "Internal error: unknown precedence of token {:?}",
+                        other
+                    )
                 } else {
                     unreachable!("Internal error: token {:?}", other)
                 }
-            },
+            }
             _ => unimplemented!(),
         }
     } else {
@@ -206,7 +219,7 @@ fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
             Token::Static(StaticToken::PlusMinus) => PREC_UPLUS_MINUS,
             Token::Static(StaticToken::MinusPlus) => PREC_UMINUS_PLUS,
             Token::Static(StaticToken::Not) => PREC_NOT,
-            _ => left_binding_power(token)
+            _ => left_binding_power(token),
         }
     } else {
         left_binding_power(token)
@@ -215,45 +228,40 @@ fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
 
 fn bracket_to_expr(
     opening: StaticToken,
-    arg: Expression<'_>
+    arg: Expression<'_>,
 ) -> Expression<'_> {
     use Expression::Unary;
     use UnaryOp::*;
     let op = match opening {
-        StaticToken::LeftAngleBracket  => Angle,
-        StaticToken::LeftAssociation   => Association,
-        StaticToken::LeftBracket       => Bracket,
-        StaticToken::LeftCeiling       => Ceiling,
-        StaticToken::LeftFloor         => Floor,
-        StaticToken::LeftList          => List,
-        _ => panic!("Internal error: {:?} is not a bracket", opening)
+        StaticToken::LeftAngleBracket => Angle,
+        StaticToken::LeftAssociation => Association,
+        StaticToken::LeftBracket => Bracket,
+        StaticToken::LeftCeiling => Ceiling,
+        StaticToken::LeftFloor => Floor,
+        StaticToken::LeftList => List,
+        _ => panic!("Internal error: {:?} is not a bracket", opening),
     };
     Unary(op, Box::new(arg))
 }
 
-fn prefix_op_to_expr(
-    op: StaticToken,
-    arg: Expression<'_>
-) -> Expression<'_> {
+fn prefix_op_to_expr(op: StaticToken, arg: Expression<'_>) -> Expression<'_> {
     if op == StaticToken::Sqrt {
-        Expression::Binary(BinaryOp::Function, Box::new((
-            Expression::Nullary(NullaryOp::Sqrt), arg
-        )))
+        Expression::Binary(
+            BinaryOp::Function,
+            Box::new((Expression::Nullary(NullaryOp::Sqrt), arg)),
+        )
     } else {
-        let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
-            "Internal error: prefix operator to expression"
-        );
+        let op = *PREFIX_OP_TO_EXPR
+            .get(&op)
+            .expect("Internal error: prefix operator to expression");
         Expression::Unary(op, Box::new(arg))
     }
 }
 
-fn postfix_op_to_expr(
-    op: StaticToken,
-    arg: Expression<'_>
-) -> Expression<'_> {
-    let op = *POSTFIX_OP_TO_EXPR.get(&op).expect(
-        "Internal error: postfix operator to expression"
-    );
+fn postfix_op_to_expr(op: StaticToken, arg: Expression<'_>) -> Expression<'_> {
+    let op = *POSTFIX_OP_TO_EXPR
+        .get(&op)
+        .expect("Internal error: postfix operator to expression");
     Expression::Unary(op, Box::new(arg))
 }
 
@@ -262,17 +270,17 @@ fn function_to_expr<'a>(
     head: Expression<'a>,
     arg: Expression<'a>,
 ) -> Expression<'a> {
-    use Expression::{Nullary, Binary};
-    use NullaryOp::{Subscript, Superscript};
     use BinaryOp::*;
+    use Expression::{Binary, Nullary};
+    use NullaryOp::{Subscript, Superscript};
     match op {
         StaticToken::LeftSquareBracket => match (head, arg) {
             (Nullary(Subscript), Binary(Sequence, args)) => {
                 Binary(BinaryOp::Subscript, Box::new((args.0, args.1)))
-            },
+            }
             (Nullary(Superscript), Binary(Sequence, args)) => {
                 Binary(BinaryOp::Superscript, Box::new((args.0, args.1)))
-            },
+            }
             (head, arg) => {
                 trace!("parsed function {:?} of {:?}", head, arg);
                 Binary(Function, Box::new((head, arg)))
@@ -280,9 +288,12 @@ fn function_to_expr<'a>(
         },
         StaticToken::LeftPart => {
             trace!("parsed part {:?} of {:?}", arg, head);
-            Binary(Part,  Box::new((head, arg)))
-        },
-        _ => unreachable!("Internal error: function-like operator {:?} to expression", op)
+            Binary(Part, Box::new((head, arg)))
+        }
+        _ => unreachable!(
+            "Internal error: function-like operator {:?} to expression",
+            op
+        ),
     }
 }
 
@@ -292,11 +303,11 @@ fn binary_op_to_expr<'a>(
     right: Expression<'a>,
 ) -> Expression<'a> {
     use Expression::Binary;
-    let op = *BINARY_OP_TO_EXPR.get(&op).expect(
-        "Internal error: postfix operator to expression"
-    );
+    let op = *BINARY_OP_TO_EXPR
+        .get(&op)
+        .expect("Internal error: postfix operator to expression");
     match assoc(op) {
-        Assoc::Right =>
+        Assoc::Right => {
             if let Binary(left_op, left_args) = left {
                 if left_op == op {
                     let (leftmost, middle) = *left_args;
@@ -307,8 +318,9 @@ fn binary_op_to_expr<'a>(
                     let left = Binary(left_op, left_args);
                     return Binary(op, Box::new((left, right)));
                 }
-            },
-        Assoc::Left => {},
+            }
+        }
+        Assoc::Left => {}
         Assoc::None => unreachable!(),
     };
     Binary(op, Box::new((left, right)))

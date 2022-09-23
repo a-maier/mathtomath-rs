@@ -1,14 +1,16 @@
-use crate::error::{SyntaxError, ErrorKind::*};
-use crate::range::Range;
 use super::tokens::*;
+use crate::error::{ErrorKind::*, SyntaxError};
+use crate::range::Range;
 
 use nom::{
-    IResult,
     branch::alt,
+    bytes::complete::{
+        escaped, is_not, tag, take_until, take_while, take_while1,
+    },
     character::complete::{char, none_of},
     combinator::opt,
-    bytes::complete::{escaped, is_not, tag, take_while, take_while1, take_until},
     sequence::{delimited, tuple},
+    IResult,
 };
 
 fn integer(i: &str) -> IResult<&str, &str> {
@@ -34,52 +36,47 @@ fn not_quote(i: &str) -> IResult<&str, &str> {
 }
 
 fn string(i: &str) -> IResult<&str, &str> {
-    delimited(
-        char('"'),
-        opt(not_quote),
-        char('"'),
-    )(i).map(|(rest, string)| (rest, string.unwrap_or("")))
+    delimited(char('"'), opt(not_quote), char('"'))(i)
+        .map(|(rest, string)| (rest, string.unwrap_or("")))
 }
-
 
 pub(crate) fn symbol(i: &str) -> IResult<&str, &str> {
     let (_rest, (a, b)) = tuple((
-        take_while1(|c: char| c.is_alphabetic() ||  c == '$'),
-        take_while(|c: char| c.is_alphanumeric() || c == '$')
+        take_while1(|c: char| c.is_alphabetic() || c == '$'),
+        take_while(|c: char| c.is_alphanumeric() || c == '$'),
     ))(i)?;
     Ok(reverse(i.split_at(a.len() + b.len())))
 }
 
-fn reverse<T,U>(tuple: (T, U)) -> (U, T) {
+fn reverse<T, U>(tuple: (T, U)) -> (U, T) {
     (tuple.1, tuple.0)
 }
 
 fn comment(i: &str) -> IResult<&str, &str> {
-    let (_rest, (a, b, c)) = tuple((tag("(*"), take_until("*)"), tag("*)")))(i)?;
+    let (_rest, (a, b, c)) =
+        tuple((tag("(*"), take_until("*)"), tag("*)")))(i)?;
     Ok(reverse(i.split_at(a.len() + b.len() + c.len())))
 }
 
 fn whitespace(i: &str) -> IResult<&str, &str> {
-    alt((
-        comment,
-        take_while(|u: char| u.is_ascii_whitespace())
-    ))(i)
+    alt((comment, take_while(|u: char| u.is_ascii_whitespace())))(i)
 }
 
-fn builtin(i: &str) -> Option<(Token<'static>, usize)>  {
-    let boundaries: Vec<_> = (1..=i.len()).filter(
-        |pos| i.is_char_boundary(*pos)
-    ).take(MAX_TOKEN_STR_LEN).collect(); // can't reverse a filter iterator
-    for & token_str_len in boundaries.iter().rev() {
+fn builtin(i: &str) -> Option<(Token<'static>, usize)> {
+    let boundaries: Vec<_> = (1..=i.len())
+        .filter(|pos| i.is_char_boundary(*pos))
+        .take(MAX_TOKEN_STR_LEN)
+        .collect(); // can't reverse a filter iterator
+    for &token_str_len in boundaries.iter().rev() {
         trace!("looking for token with string length {}", token_str_len);
         if let Some(val) = STR_TO_TOKEN.get(&i[..token_str_len]) {
-            return Some((Token::Static(*val), token_str_len))
+            return Some((Token::Static(*val), token_str_len));
         }
     }
     None
 }
 
-#[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) struct Lexer<'a> {
     remaining_input: &'a str,
     pos: usize,
@@ -88,7 +85,7 @@ pub(crate) struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub(crate) fn for_input(input: &'a str) -> Lexer<'a> {
-        Lexer{
+        Lexer {
             remaining_input: input,
             pos: 0,
             open_part_brackets: 0,
@@ -112,27 +109,32 @@ impl<'a> Lexer<'a> {
         if let Ok((remaining_input, token)) = symbol(self.remaining_input) {
             self.parse_success(token, remaining_input);
             if let Some(token) = BUILTIN_SYMBOL.get(token) {
-                return Some(Ok(Token::Static(*token)))
+                return Some(Ok(Token::Static(*token)));
             } else {
-                return Some(Ok(Token::Symbol(token.as_bytes())))
+                return Some(Ok(Token::Symbol(token.as_bytes())));
             }
         }
         if let Ok((remaining_input, token)) = real(self.remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::Real(token.as_bytes())))
+            return Some(Ok(Token::Real(token.as_bytes())));
         }
         if let Ok((remaining_input, token)) = integer(self.remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::Integer(token.as_bytes())))
+            return Some(Ok(Token::Integer(token.as_bytes())));
         }
         if let Ok((remaining_input, token)) = string(self.remaining_input) {
             self.parse_success(token, remaining_input);
-            return Some(Ok(Token::String(token.as_bytes())))
+            return Some(Ok(Token::String(token.as_bytes())));
         }
-        if let Some((mut token, mut token_str_len)) = builtin(self.remaining_input) {
+        if let Some((mut token, mut token_str_len)) =
+            builtin(self.remaining_input)
+        {
             if token == Token::Static(StaticToken::LeftPart) {
                 self.open_part_brackets += 1;
-                debug!("Opening Part brackets, now {}", self.open_part_brackets);
+                debug!(
+                    "Opening Part brackets, now {}",
+                    self.open_part_brackets
+                );
             } else if token == Token::Static(StaticToken::RightPart) {
                 debug!("{} open Part brackets", self.open_part_brackets);
                 if self.open_part_brackets > 0 {
@@ -146,9 +148,10 @@ impl<'a> Lexer<'a> {
                     token_str_len = 1;
                 }
             }
-            let (token_str, rest) = self.remaining_input.split_at(token_str_len);
+            let (token_str, rest) =
+                self.remaining_input.split_at(token_str_len);
             self.parse_success(token_str, rest);
-            return Some(Ok(token))
+            return Some(Ok(token));
         }
         let err = SyntaxError::new(NotAToken, self.pos());
         self.remaining_input = "";
@@ -163,14 +166,23 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         trace!("lexer called on {}", self.remaining_input);
         loop {
-            let (remaining_input, ws) = whitespace(self.remaining_input).unwrap();
-            if ws.is_empty() { break }
+            let (remaining_input, ws) =
+                whitespace(self.remaining_input).unwrap();
+            if ws.is_empty() {
+                break;
+            }
             self.parse_success(ws, remaining_input);
         }
         let old_pos = self.pos;
         if let Some(t) = self.next_nospace() {
             let res = match t {
-                Ok(token) => Ok((token, Range{start: old_pos, end: self.pos})),
+                Ok(token) => Ok((
+                    token,
+                    Range {
+                        start: old_pos,
+                        end: self.pos,
+                    },
+                )),
                 Err(err) => Err(err),
             };
             Some(res)
@@ -192,11 +204,10 @@ mod tests {
     fn tst_lexer() {
         log_init();
 
-        use Token::*;
         use StaticToken::*;
+        use Token::*;
 
-        let expr =
-            r#" + 35 - "iπs\"[a]f]"_.q / den[4*a^-3, $a[[1]]] + ln[x1,x6];
+        let expr = r#" + 35 - "iπs\"[a]f]"_.q / den[4*a^-3, $a[[1]]] + ln[x1,x6];
 (* [ this is a comment
 *)
 foo = 〈as^.238〉;
@@ -266,8 +277,8 @@ foo = 〈as^.238〉;
     fn tst_part() {
         log_init();
 
-        use Token::*;
         use StaticToken::*;
+        use Token::*;
 
         let mut p = Lexer::for_input("[[]]");
         assert_eq!(p.next().unwrap().unwrap().0, Static(LeftPart));

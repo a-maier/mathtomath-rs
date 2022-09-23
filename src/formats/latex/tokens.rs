@@ -5,7 +5,7 @@ use crate::expression::*;
 
 use std::collections::HashMap;
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) enum Token<'a> {
     Symbol(&'a [u8]),
     Integer(&'a [u8]),
@@ -13,7 +13,7 @@ pub(crate) enum Token<'a> {
     Static(StaticToken),
 }
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) enum StaticToken {
     Sum,
     D,
@@ -294,11 +294,12 @@ pub(crate) enum StaticToken {
     OverTilde,
 }
 
-lazy_static!{
-    pub(crate) static ref MAX_TOKEN_STR_LEN: usize = BUILTIN.keys().map(|k| k.len()).max().unwrap();
+lazy_static! {
+    pub(crate) static ref MAX_TOKEN_STR_LEN: usize =
+        BUILTIN.keys().map(|k| k.len()).max().unwrap();
 }
 
-pub(crate) const BUILTIN: phf::Map<&'static [u8], StaticToken> = phf_map!{
+pub(crate) const BUILTIN: phf::Map<&'static [u8], StaticToken> = phf_map! {
     br"!!" => StaticToken::DoubleFactorial,
     br"(" => StaticToken::LeftBracket,
     br")" => StaticToken::RightBracket,
@@ -323,7 +324,7 @@ pub(crate) const BUILTIN: phf::Map<&'static [u8], StaticToken> = phf_map!{
     br"}" => StaticToken::RightBrace,
 };
 
-pub(crate) const BUILTIN_BACKSLASHED: phf::Map<&'static [u8], StaticToken> = phf_map!{
+pub(crate) const BUILTIN_BACKSLASHED: phf::Map<&'static [u8], StaticToken> = phf_map! {
     // E,
     // I,
     //Conjugate,
@@ -599,7 +600,7 @@ lazy_static! {
 // arity for operators that can appear in the call to the `left`  method
 // of the Pratt parser, i.e. unary postfix, binary, or function-like
 lazy_static! {
-    pub(crate) static ref LEFT_ARITY: HashMap<StaticToken, Arity> = hashmap!{
+    pub(crate) static ref LEFT_ARITY: HashMap<StaticToken, Arity> = hashmap! {
         StaticToken::LeftBracket => Arity::Function,
         StaticToken::LeftList => Arity::Function,
 
@@ -673,7 +674,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref CLOSING_BRACKET: HashMap<StaticToken, StaticToken> = hashmap!{
+    pub(crate) static ref CLOSING_BRACKET: HashMap<StaticToken, StaticToken> = hashmap! {
         StaticToken::LeftAngleBracket  => StaticToken::RightAngleBracket,
         StaticToken::LeftBracket       => StaticToken::RightBracket,
         StaticToken::LeftBrace         => StaticToken::RightBrace,
@@ -684,7 +685,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref TOKEN_EXPRESSION: HashMap<StaticToken, NullaryOp<'static>> = hashmap!{
+    pub(crate) static ref TOKEN_EXPRESSION: HashMap<StaticToken, NullaryOp<'static>> = hashmap! {
         StaticToken::Pi => NullaryOp::Pi,
         StaticToken::Infinity => NullaryOp::Infinity,
         StaticToken::Log => NullaryOp::Log,
@@ -708,7 +709,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref PREFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap!{
+    pub(crate) static ref PREFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap! {
         StaticToken::Del => UnaryOp::Del,
         StaticToken::Exists => UnaryOp::Exists,
         StaticToken::ForAll => UnaryOp::ForAll,

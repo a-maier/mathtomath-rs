@@ -1,23 +1,20 @@
-use std::{borrow::Cow, str};
 use regex::bytes;
+use std::{borrow::Cow, str};
 
 // replace \[...] by unicode characters
 pub fn mathematica_to_utf8(
-    text: &[u8]
+    text: &[u8],
 ) -> Result<Cow<'_, [u8]>, str::Utf8Error> {
     debug!("replace special mathematica characters by utf8");
 
     let re = bytes::Regex::new(r"\\\[(\w+)\]").unwrap();
-    let result = re.replace_all(
-        text,
-        |caps: &bytes::Captures| {
-            if let Some(&res) = TO_UNICODE.get(&caps[1]) {
-                res.to_owned()
-            } else {
-                caps[0].to_owned()
-            }
+    let result = re.replace_all(text, |caps: &bytes::Captures| {
+        if let Some(&res) = TO_UNICODE.get(&caps[1]) {
+            res.to_owned()
+        } else {
+            caps[0].to_owned()
         }
-    );
+    });
     trace!("{}", str::from_utf8(&result).unwrap());
     Ok(result)
 }
@@ -30,7 +27,7 @@ pub fn mathematica_to_utf8(
 // str = OpenWrite[..., CharacterEncoding -> "UTF-8"];
 // WriteString[str, foo];
 /// ```
-const TO_UNICODE: phf::Map<&'static [u8], &'static [u8]> = phf_map!{
+const TO_UNICODE: phf::Map<&'static [u8], &'static [u8]> = phf_map! {
     b"AAcute" => "á".as_bytes(),
     b"ABar" => "ā".as_bytes(),
     b"ACup" => "ă".as_bytes(),

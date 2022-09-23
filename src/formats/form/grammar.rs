@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use super::lexer::{self, StaticToken};
-use crate::expression::*;
 use crate::arity::Arity;
 use crate::assoc::Assoc;
 use crate::error::ErrorKind;
+use crate::expression::*;
 
 pub(crate) fn bracket_to_expr(
     opening: StaticToken,
-    arg: Expression<'_>
+    arg: Expression<'_>,
 ) -> Expression<'_> {
     debug_assert_eq!(opening, StaticToken::LeftBracket);
     Expression::Unary(UnaryOp::Bracket, Box::new(arg))
@@ -16,17 +16,17 @@ pub(crate) fn bracket_to_expr(
 
 pub(crate) fn prefix_op_to_expr(
     op: StaticToken,
-    arg: Expression<'_>
+    arg: Expression<'_>,
 ) -> Expression<'_> {
-    let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
-        "Internal error: prefix operator to expression"
-    );
+    let op = *PREFIX_OP_TO_EXPR
+        .get(&op)
+        .expect("Internal error: prefix operator to expression");
     Expression::Unary(op, Box::new(arg))
 }
 
 pub(crate) fn postfix_op_to_expr(
     op: StaticToken,
-    arg: Expression<'_>
+    arg: Expression<'_>,
 ) -> Expression<'_> {
     debug_assert_eq!(op, StaticToken::Wildcard);
     Expression::Unary(UnaryOp::Wildcard, Box::new(arg))
@@ -37,19 +37,22 @@ pub(crate) fn function_to_expr<'a>(
     head: Expression<'a>,
     arg: Expression<'a>,
 ) -> Expression<'a> {
-    use Expression::Binary;
     use BinaryOp::*;
+    use Expression::Binary;
     let args = Box::new((head, arg));
     match op {
         StaticToken::LeftBracket => {
             trace!("parsed function {:?} of {:?}", args.0, args.1);
             Binary(Function, args)
-        },
+        }
         StaticToken::LeftSquareBracket => {
             trace!("parsed coefficient {:?} of {:?}", args.1, args.0);
             Binary(Coefficient, args)
-        },
-        _ => unreachable!("Internal error: function-like operator {:?} to expression", op)
+        }
+        _ => unreachable!(
+            "Internal error: function-like operator {:?} to expression",
+            op
+        ),
     }
 }
 
@@ -59,21 +62,23 @@ pub(crate) fn binary_op_to_expr<'a>(
     right: Expression<'a>,
 ) -> Result<Expression<'a>, ErrorKind> {
     use Expression::Binary;
-    let op = *BINARY_OP_TO_EXPR.get(&op).expect(
-        "Internal error: postfix operator to expression"
-    );
+    let op = *BINARY_OP_TO_EXPR
+        .get(&op)
+        .expect("Internal error: postfix operator to expression");
     match assoc(op) {
-        Assoc::None => if let Binary(left_op, left_args) = left {
-            if left_op == op {
-                return Err(ErrorKind::NonAssocOpChain);
-            } else {
-                // restore left arg
-                let left = Binary(left_op, left_args);
-                return Ok(Binary(op, Box::new((left, right))));
+        Assoc::None => {
+            if let Binary(left_op, left_args) = left {
+                if left_op == op {
+                    return Err(ErrorKind::NonAssocOpChain);
+                } else {
+                    // restore left arg
+                    let left = Binary(left_op, left_args);
+                    return Ok(Binary(op, Box::new((left, right))));
+                }
             }
-        },
-        Assoc::Left => {},
-        Assoc::Right => unreachable!()
+        }
+        Assoc::Left => {}
+        Assoc::Right => unreachable!(),
     }
     Ok(Expression::Binary(op, Box::new((left, right))))
 }
@@ -109,7 +114,7 @@ pub fn is_symbol(i: &[u8]) -> bool {
 // arity for "operators" that can appear in the call to the `null`  method
 // of the Pratt parser, i.e. nullary, unary prefix, or brackets
 lazy_static! {
-    pub(crate) static ref NULL_ARITY: HashMap<StaticToken, Arity> = hashmap!{
+    pub(crate) static ref NULL_ARITY: HashMap<StaticToken, Arity> = hashmap! {
         StaticToken::Ellipsis => Arity::Nullary,
         StaticToken::I => Arity::Nullary,
         StaticToken::Pi => Arity::Nullary,
@@ -141,7 +146,7 @@ lazy_static! {
 // arity for operators that can appear in the call to the `left`  method
 // of the Pratt parser, i.e. unary postfix, binary, or function-like
 lazy_static! {
-    pub(crate) static ref LEFT_ARITY: HashMap<StaticToken, Arity> = hashmap!{
+    pub(crate) static ref LEFT_ARITY: HashMap<StaticToken, Arity> = hashmap! {
         StaticToken::Wildcard => Arity::Unary,
 
         StaticToken::LeftBracket => Arity::Function,
@@ -160,7 +165,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref PREFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap!{
+    pub(crate) static ref PREFIX_OP_TO_EXPR: HashMap<StaticToken, UnaryOp> = hashmap! {
         StaticToken::Plus => UnaryOp::UPlus,
         StaticToken::Minus => UnaryOp::UMinus,
         StaticToken::Wildcard => UnaryOp::Many0Wildcard,
@@ -168,7 +173,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref BINARY_OP_TO_EXPR: HashMap<StaticToken, BinaryOp> = hashmap!{
+    pub(crate) static ref BINARY_OP_TO_EXPR: HashMap<StaticToken, BinaryOp> = hashmap! {
         StaticToken::Semicolon => BinaryOp::Compound,
         StaticToken::Comma => BinaryOp::Sequence,
         StaticToken::Plus => BinaryOp::Plus,
@@ -182,14 +187,14 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref CLOSING_BRACKET: HashMap<StaticToken, StaticToken> = hashmap!{
+    pub(crate) static ref CLOSING_BRACKET: HashMap<StaticToken, StaticToken> = hashmap! {
         StaticToken::LeftBracket => StaticToken::RightBracket,
         StaticToken::LeftSquareBracket => StaticToken::RightSquareBracket,
     };
 }
 
 lazy_static! {
-    pub(crate) static ref TOKEN_EXPRESSION: HashMap<StaticToken, NullaryOp<'static>> = hashmap!{
+    pub(crate) static ref TOKEN_EXPRESSION: HashMap<StaticToken, NullaryOp<'static>> = hashmap! {
         StaticToken::Ellipsis => NullaryOp::Ellipsis,
         StaticToken::I => NullaryOp::I,
         StaticToken::Pi => NullaryOp::Pi,
@@ -216,6 +221,6 @@ pub fn assoc(op: BinaryOp) -> Assoc {
     use Assoc::*;
     match op {
         BinaryOp::Power | BinaryOp::Dot => None,
-        _ => Left
+        _ => Left,
     }
 }

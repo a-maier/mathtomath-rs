@@ -1,6 +1,6 @@
 use std::convert::From;
 
-#[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Expression<'a> {
     Nullary(NullaryOp<'a>),
     Unary(UnaryOp, Box<Expression<'a>>),
@@ -13,7 +13,7 @@ impl<'a> From<NullaryOp<'a>> for Expression<'a> {
     }
 }
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum NullaryOp<'a> {
     Empty,
     Integer(&'a [u8]),
@@ -47,7 +47,7 @@ pub enum NullaryOp<'a> {
     OverTilde,
 }
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum UnaryOp {
     Bracket,
     Wildcard,
@@ -86,7 +86,7 @@ pub enum UnaryOp {
     Calligraphic,
 }
 
-#[derive(Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum BinaryOp {
     Plus,
     Minus,

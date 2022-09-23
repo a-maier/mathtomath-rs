@@ -1,8 +1,8 @@
 // TODO: unify parsers and offload everything that's format-dependent into grammar
 use super::grammar::*;
-use super::lexer::{Lexer, Token, StaticToken};
+use super::lexer::{Lexer, StaticToken, Token};
 use crate::arity::Arity;
-use crate::error::{SyntaxError, ErrorKind::*};
+use crate::error::{ErrorKind::*, SyntaxError};
 use crate::expression::*;
 use crate::range::Range;
 
@@ -11,7 +11,7 @@ pub fn parse(input: &[u8]) -> Result<Expression<'_>, SyntaxError> {
     parser.parse()
 }
 
-#[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 struct Parser<'a> {
     lexer: Lexer<'a>,
     input: &'a [u8],
@@ -23,7 +23,7 @@ const LEFT_TOKENS: &str =
 impl<'a> Parser<'a> {
     fn new(input: &'a [u8]) -> Self {
         let lexer = Lexer::for_input(input);
-        Parser{lexer, input}
+        Parser { lexer, input }
     }
 
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
@@ -33,12 +33,18 @@ impl<'a> Parser<'a> {
         match next {
             None => Ok(res),
             Some((token, pos)) => {
-                use Token::Static;
                 use StaticToken::{RightBracket, RightSquareBracket};
+                use Token::Static;
                 match token {
-                    Static(RightBracket) => Err(SyntaxError::new(Unmatched(")".to_string()), pos.start)),
-                    Static(RightSquareBracket) => Err(SyntaxError::new(Unmatched("]".to_string()), pos.start)),
-                    _ => Err(SyntaxError::new(RemainingToken, pos.start))
+                    Static(RightBracket) => Err(SyntaxError::new(
+                        Unmatched(")".to_string()),
+                        pos.start,
+                    )),
+                    Static(RightSquareBracket) => Err(SyntaxError::new(
+                        Unmatched("]".to_string()),
+                        pos.start,
+                    )),
+                    _ => Err(SyntaxError::new(RemainingToken, pos.start)),
                 }
             }
         }
@@ -47,7 +53,7 @@ impl<'a> Parser<'a> {
     fn parse_with(
         &mut self,
         next: &mut Option<(Token<'a>, Range<usize>)>,
-        right_binding_power: u32
+        right_binding_power: u32,
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("parser called with rbp {}", right_binding_power);
         let mut token = *next;
@@ -65,7 +71,7 @@ impl<'a> Parser<'a> {
     fn null(
         &mut self,
         token: Option<(Token<'a>, Range<usize>)>,
-        next: &mut Option<(Token<'a>, Range<usize>)>
+        next: &mut Option<(Token<'a>, Range<usize>)>,
     ) -> Result<Expression<'a>, SyntaxError> {
         use Expression::*;
         use NullaryOp::*;
@@ -125,15 +131,18 @@ impl<'a> Parser<'a> {
                 Some(Binary) => {
                     let right_binding_power = left_binding_power(token);
                     let right = self.parse_with(next, right_binding_power)?;
-                    binary_op_to_expr(s, left, right).map_err(
-                        |e| SyntaxError::new(e, pos.start)
-                    )
-                },
+                    binary_op_to_expr(s, left, right)
+                        .map_err(|e| SyntaxError::new(e, pos.start))
+                }
                 Some(Function) => {
                     let next_token = next.as_ref().map(|(t, _pos)| t);
                     if next_token == Some(&Token::Static(CLOSING_BRACKET[&s])) {
                         *next = self.lexer.next().transpose()?;
-                        return Ok(function_to_expr(s, left, Expression::Nullary(NullaryOp::Empty)));
+                        return Ok(function_to_expr(
+                            s,
+                            left,
+                            Expression::Nullary(NullaryOp::Empty),
+                        ));
                     }
                     let right = self.parse_with(next, 0)?;
                     let next_token = next.as_ref().map(|(t, _pos)| t);
@@ -142,15 +151,20 @@ impl<'a> Parser<'a> {
                         Ok(function_to_expr(s, left, right))
                     } else {
                         let bracket = std::str::from_utf8(
-                            &self.input[pos.start..pos.end]
-                        ).unwrap().to_owned();
+                            &self.input[pos.start..pos.end],
+                        )
+                        .unwrap()
+                        .to_owned();
                         Err(SyntaxError::new(Unmatched(bracket), pos.start))
                     }
-                },
+                }
                 Some(arity) => unreachable!(
-                    "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
+                    "Internal error: {:?} has LEFT_ARITY {:?}",
+                    s, arity
                 ),
-                None => Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
+                None => {
+                    Err(SyntaxError::new(ExpectLeft(LEFT_TOKENS), pos.start))
+                }
             }
         } else {
             Err(SyntaxError::new(EarlyEof(LEFT_TOKENS), self.pos()))
@@ -182,12 +196,12 @@ fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
     match tok {
         Some(&Token::Static(StaticToken::Minus)) => PREC_UMINUS,
         Some(&Token::Static(StaticToken::Plus)) => PREC_UPLUS,
-        _ => left_binding_power(token)
+        _ => left_binding_power(token),
     }
 }
 
 lazy_static! {
-    pub(crate) static ref TOKEN_PREC: std::collections::HashMap<StaticToken, u32> = hashmap!{
+    pub(crate) static ref TOKEN_PREC: std::collections::HashMap<StaticToken, u32> = hashmap! {
         StaticToken::RightBracket => PREC_RIGHT_BRACKET,
         StaticToken::RightSquareBracket => PREC_RIGHT_SQUARE_BRACKET,
         StaticToken::Ellipsis => PREC_ELLIPSIS,
@@ -225,7 +239,7 @@ lazy_static! {
 mod tests {
     use super::*;
 
-    use crate::expression::{Expression, NullaryOp, UnaryOp, BinaryOp};
+    use crate::expression::{BinaryOp, Expression, NullaryOp, UnaryOp};
 
     fn log_init() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -303,46 +317,91 @@ mod tests {
         let res = Unary(Many0Wildcard, Box::new(Nullary(Symbol(&expr[1..]))));
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
-
     }
 
     #[test]
     fn tst_binary() {
         log_init();
+        use BinaryOp::*;
         use Expression::*;
         use NullaryOp::*;
-        use BinaryOp::*;
 
         let expr: &[u8] = b" a + 1 ";
         let a: &[u8] = b"a";
         let int: &[u8] = b"1";
-        let res = Binary(Plus, Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))));
+        let res =
+            Binary(Plus, Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))));
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + 1 + b";
         let b: &[u8] = b"b";
-        let res = Binary(Plus, Box::new((Binary(Plus, Box::new((Nullary(Symbol(a)), Nullary(Integer(int))))), Nullary(Symbol(b)))));
+        let res = Binary(
+            Plus,
+            Box::new((
+                Binary(
+                    Plus,
+                    Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+                ),
+                Nullary(Symbol(b)),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b"a,...,b";
-        let res = Binary(Sequence, Box::new((Binary(Sequence, Box::new((Nullary(Symbol(a)), Nullary(Ellipsis)))), Nullary(Symbol(b)))));
+        let res = Binary(
+            Sequence,
+            Box::new((
+                Binary(
+                    Sequence,
+                    Box::new((Nullary(Symbol(a)), Nullary(Ellipsis))),
+                ),
+                Nullary(Symbol(b)),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + 1 - b";
-        let res = Binary(Minus, Box::new((Binary(Plus, Box::new((Nullary(Symbol(a)), Nullary(Integer(int))))), Nullary(Symbol(b)))));
+        let res = Binary(
+            Minus,
+            Box::new((
+                Binary(
+                    Plus,
+                    Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+                ),
+                Nullary(Symbol(b)),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a * 1 - b";
-        let res = Binary(Minus, Box::new((Binary(Times, Box::new((Nullary(Symbol(a)), Nullary(Integer(int))))), Nullary(Symbol(b)))));
+        let res = Binary(
+            Minus,
+            Box::new((
+                Binary(
+                    Times,
+                    Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+                ),
+                Nullary(Symbol(b)),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a * 1 ^ b";
-        let res = Binary(Times, Box::new((Nullary(Symbol(a)), Binary(Power, Box::new((Nullary(Integer(int)), Nullary(Symbol(b))))))));
+        let res = Binary(
+            Times,
+            Box::new((
+                Nullary(Symbol(a)),
+                Binary(
+                    Power,
+                    Box::new((Nullary(Integer(int)), Nullary(Symbol(b)))),
+                ),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
     }
@@ -350,27 +409,57 @@ mod tests {
     #[test]
     fn tst_brackets() {
         log_init();
+        use BinaryOp::*;
         use Expression::*;
         use NullaryOp::*;
         use UnaryOp::*;
-        use BinaryOp::*;
 
         let a: &[u8] = b"a";
         let b: &[u8] = b"b";
         let int: &[u8] = b"1";
 
         let expr: &[u8] = b" ( a + 1 )";
-        let res = Unary(Bracket, Box::new(Binary(Plus, Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))))));
+        let res = Unary(
+            Bracket,
+            Box::new(Binary(
+                Plus,
+                Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" a + (1 - b)";
-        let res = Binary(Plus, Box::new((Nullary(Symbol(a)), Unary(Bracket, Box::new(Binary(Minus, Box::new((Nullary(Integer(int)), Nullary(Symbol(b))))))))));
+        let res = Binary(
+            Plus,
+            Box::new((
+                Nullary(Symbol(a)),
+                Unary(
+                    Bracket,
+                    Box::new(Binary(
+                        Minus,
+                        Box::new((Nullary(Integer(int)), Nullary(Symbol(b)))),
+                    )),
+                ),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" (a * 1) ^ b";
-        let res = Binary(Power, Box::new((Unary(Bracket, Box::new(Binary(Times, Box::new((Nullary(Symbol(a)), Nullary(Integer(int))))))), Nullary(Symbol(b)))));
+        let res = Binary(
+            Power,
+            Box::new((
+                Unary(
+                    Bracket,
+                    Box::new(Binary(
+                        Times,
+                        Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+                    )),
+                ),
+                Nullary(Symbol(b)),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
     }
@@ -378,38 +467,52 @@ mod tests {
     #[test]
     fn tst_square_brackets() {
         log_init();
+        use BinaryOp::*;
         use Expression::*;
         use NullaryOp::*;
-        use BinaryOp::*;
 
         let a: &[u8] = b"a";
         let b: &[u8] = b"b";
         let int: &[u8] = b"1";
 
         let expr: &[u8] = b"a[1]";
-        let res = Binary(Coefficient, Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))));
+        let res = Binary(
+            Coefficient,
+            Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
 
         let expr: &[u8] = b" b^a[1]";
-        let res = Binary(Power, Box::new((Nullary(Symbol(b)), Binary(Coefficient, Box::new((Nullary(Symbol(a)), Nullary(Integer(int))))))));
+        let res = Binary(
+            Power,
+            Box::new((
+                Nullary(Symbol(b)),
+                Binary(
+                    Coefficient,
+                    Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+                ),
+            )),
+        );
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
-
     }
 
     #[test]
     fn tst_function() {
         log_init();
-        use NullaryOp::*;
         use BinaryOp::*;
         use Expression::*;
+        use NullaryOp::*;
 
         let a: &[u8] = b"a";
         let b: &[u8] = b"b";
         let int: &[u8] = b"1";
 
-        let fun = Binary(Function, Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))));
+        let fun = Binary(
+            Function,
+            Box::new((Nullary(Symbol(a)), Nullary(Integer(int)))),
+        );
         let expr: &[u8] = b"a(1)";
         let res = fun.clone().into();
         let mut parser = Parser::new(expr);
@@ -419,6 +522,5 @@ mod tests {
         let res = Binary(Power, Box::new((Nullary(Symbol(b)), fun.into())));
         let mut parser = Parser::new(expr);
         assert_eq!(parser.parse().unwrap(), res);
-
     }
 }

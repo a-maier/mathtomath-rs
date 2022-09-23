@@ -1,12 +1,12 @@
-use std::{str, error, fmt};
+use std::{error, fmt, str};
 
-#[derive(Clone,Eq,PartialEq,Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct SyntaxError {
     kind: ErrorKind,
     pos: usize,
 }
 
-#[derive(Clone,Eq,PartialEq,Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum ErrorKind {
     EarlyEof(&'static str),
     ExpectLeft(&'static str),
@@ -18,12 +18,11 @@ pub enum ErrorKind {
     RemainingToken,
 }
 
-impl error::Error for SyntaxError {
-}
+impl error::Error for SyntaxError {}
 
 impl SyntaxError {
     pub fn new(kind: ErrorKind, pos: usize) -> SyntaxError {
-        SyntaxError{kind, pos}
+        SyntaxError { kind, pos }
     }
 
     pub fn pos(&self) -> usize {
@@ -35,13 +34,21 @@ impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ErrorKind::*;
         match self.kind {
-            EarlyEof(s) => write!(f, "unexpected end of expression, expected {}", s),
-            ExpectLeft(s) | ExpectNull(s) => write!(f, "unexpected token, expected {}", s),
+            EarlyEof(s) => {
+                write!(f, "unexpected end of expression, expected {}", s)
+            }
+            ExpectLeft(s) | ExpectNull(s) => {
+                write!(f, "unexpected token, expected {}", s)
+            }
             NotAToken => write!(f, "unknown token"),
             Unmatched(ref b) => write!(f, "unmatched bracket {}", b),
             Utf8Error(err) => write!(f, "utf8 conversion error: {}", err),
-            RemainingToken => write!(f, "remaining text after parsing expression"),
-            NonAssocOpChain => write!(f, "chaining of non-associative operator"),
+            RemainingToken => {
+                write!(f, "remaining text after parsing expression")
+            }
+            NonAssocOpChain => {
+                write!(f, "chaining of non-associative operator")
+            }
         }
     }
 }
@@ -54,27 +61,26 @@ impl std::convert::From<str::Utf8Error> for SyntaxError {
     }
 }
 
-#[derive(Clone,Eq,PartialEq,Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Context {
     pub line: usize,
     pub before: String,
     pub after: String,
 }
 
-#[derive(Clone,Eq,PartialEq,Debug)]
-pub struct ParseError{
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct ParseError {
     pub context: Option<Context>,
     err: SyntaxError,
 }
 
 impl ParseError {
     pub fn new(context: Option<Context>, err: SyntaxError) -> Self {
-        ParseError{context, err}
+        ParseError { context, err }
     }
 }
 
-impl error::Error for ParseError {
-}
+impl error::Error for ParseError {}
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -89,8 +95,7 @@ pub enum Error {
     Utf8(std::str::Utf8Error),
 }
 
-impl error::Error for Error {
-}
+impl error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -3,15 +3,19 @@ use std::collections::HashMap;
 
 use super::grammar::*;
 use super::lexer::Lexer;
-use super::tokens::{Token, StaticToken, TOKEN_PREC, TOKEN_EXPRESSION, NULL_ARITY, LEFT_ARITY, CLOSING_BRACKET, PREFIX_OP_TO_EXPR, POSTFIX_OP_TO_EXPR, BINARY_OP_TO_EXPR};
-use crate::error::{SyntaxError, ErrorKind::*};
-use crate::expression::*;
-use crate::assoc::Assoc;
+use super::tokens::{
+    StaticToken, Token, BINARY_OP_TO_EXPR, CLOSING_BRACKET, LEFT_ARITY,
+    NULL_ARITY, POSTFIX_OP_TO_EXPR, PREFIX_OP_TO_EXPR, TOKEN_EXPRESSION,
+    TOKEN_PREC,
+};
 use crate::arity::Arity;
-use crate::range::Range;
+use crate::assoc::Assoc;
 use crate::error::ErrorKind;
+use crate::error::{ErrorKind::*, SyntaxError};
+use crate::expression::*;
+use crate::range::Range;
 
-#[derive(Clone,Eq,PartialEq,Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 enum ParseError<'a> {
     Syntax(SyntaxError),
     MulParsedAsFunction(Expression<'a>),
@@ -31,7 +35,7 @@ pub fn parse(input: &[u8]) -> Result<Expression<'_>, SyntaxError> {
     parser.parse()
 }
 
-#[derive(Copy,Clone,Default,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 struct Parser<'a> {
     lexer: Lexer<'a>,
     input: &'a [u8],
@@ -43,7 +47,7 @@ const LEFT_TOKENS: &str =
 impl<'a> Parser<'a> {
     fn new(input: &'a [u8]) -> Self {
         let lexer = Lexer::for_input(input);
-        Parser{lexer, input}
+        Parser { lexer, input }
     }
 
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
@@ -53,20 +57,22 @@ impl<'a> Parser<'a> {
         match next {
             None => Ok(res),
             Some((token, pos)) => {
-                use Token::Static;
                 use StaticToken::*;
+                use Token::Static;
                 match token {
                     Static(RightAngleBracket)
-                        | Static(RightCeiling)
-                        | Static(RightFloor)
-                        | Static(RightBrace)
-                        | Static(RightList)
-                        => {
-                            let bracket = &self.input[pos.start..pos.end];
-                            let bracket = std::str::from_utf8(bracket).unwrap();
-                            Err(SyntaxError::new(Unmatched(bracket.to_owned()), pos.start))
-                        },
-                    _ => Err(SyntaxError::new(RemainingToken, pos.start))
+                    | Static(RightCeiling)
+                    | Static(RightFloor)
+                    | Static(RightBrace)
+                    | Static(RightList) => {
+                        let bracket = &self.input[pos.start..pos.end];
+                        let bracket = std::str::from_utf8(bracket).unwrap();
+                        Err(SyntaxError::new(
+                            Unmatched(bracket.to_owned()),
+                            pos.start,
+                        ))
+                    }
+                    _ => Err(SyntaxError::new(RemainingToken, pos.start)),
                 }
             }
         }
@@ -75,7 +81,7 @@ impl<'a> Parser<'a> {
     fn parse_with(
         &mut self,
         next: &mut Option<(Token<'a>, Range<usize>)>,
-        right_binding_power: u32
+        right_binding_power: u32,
     ) -> Result<Expression<'a>, SyntaxError> {
         debug!("parser called with rbp {}", right_binding_power);
         let mut token = *next;
@@ -91,10 +97,13 @@ impl<'a> Parser<'a> {
                     let (_, pos) = token.unwrap();
                     self.lexer.skip_bytes(pos.start);
                     let times = Token::Static(StaticToken::Times);
-                    let range = Range{start: pos.start, end: pos.start};
+                    let range = Range {
+                        start: pos.start,
+                        end: pos.start,
+                    };
                     *next = Some((times, range));
                     left
-                },
+                }
                 Err(ParseError::Syntax(err)) => return Err(err),
                 Ok(expr) => expr,
             };
@@ -106,7 +115,7 @@ impl<'a> Parser<'a> {
     fn null(
         &mut self,
         token: Option<(Token<'a>, Range<usize>)>,
-        next: &mut Option<(Token<'a>, Range<usize>)>
+        next: &mut Option<(Token<'a>, Range<usize>)>,
     ) -> Result<Expression<'a>, SyntaxError> {
         use Expression::*;
         use NullaryOp::*;
@@ -116,7 +125,7 @@ impl<'a> Parser<'a> {
                 Token::Symbol(name) => {
                     let name = LATEX_SYMBOLS.get(&name).unwrap_or(&name);
                     Ok(Nullary(Symbol(name)))
-                },
+                }
                 Token::Integer(int) => Ok(Nullary(Integer(int))),
                 Token::Real(x) => Ok(Nullary(Real(x))),
                 Token::Static(StaticToken::Frac) => {
@@ -124,8 +133,11 @@ impl<'a> Parser<'a> {
                     trace!("fraction num: {:?}", num);
                     let den = self.parse_with(next, PREC_FRAC)?;
                     trace!("fraction den: {:?}", num);
-                    Ok(Expression::Binary(BinaryOp::Divide, Box::new((num, den))))
-                },
+                    Ok(Expression::Binary(
+                        BinaryOp::Divide,
+                        Box::new((num, den)),
+                    ))
+                }
                 Token::Static(s) => {
                     use Arity::*;
                     match NULL_ARITY.get(&s) {
@@ -200,10 +212,16 @@ impl<'a> Parser<'a> {
         match token {
             Some((Token::Static(StaticToken::Subscript), _)) => {
                 let right = self.parse_with(next, PREC_SUBSCRIPT)?;
-                let arg = Expression::Binary(BinaryOp::Sequence, Box::new((left, right)));
+                let arg = Expression::Binary(
+                    BinaryOp::Sequence,
+                    Box::new((left, right)),
+                );
                 let head = Expression::Nullary(NullaryOp::Subscript);
-                Ok(Expression::Binary(BinaryOp::Function, Box::new((head, arg))))
-            },
+                Ok(Expression::Binary(
+                    BinaryOp::Function,
+                    Box::new((head, arg)),
+                ))
+            }
             Some((Token::Static(s), ref pos)) => {
                 use Arity::*;
                 trace!("left arity for {:?}: {:?}", s, LEFT_ARITY.get(&s));
@@ -211,18 +229,25 @@ impl<'a> Parser<'a> {
                     Some(Unary) => Ok(postfix_op_to_expr(s, left)),
                     Some(Binary) => {
                         let right_binding_power = left_binding_power(token);
-                        let right = self.parse_with(next, right_binding_power)?;
-                        binary_op_to_expr(s, left, right).map_err(
-                            |e| ParseError::Syntax(SyntaxError::new(e, pos.start))
-                        )
-                    },
+                        let right =
+                            self.parse_with(next, right_binding_power)?;
+                        binary_op_to_expr(s, left, right).map_err(|e| {
+                            ParseError::Syntax(SyntaxError::new(e, pos.start))
+                        })
+                    }
                     Some(Function) => {
-                        let arg = self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
-                        let op = if let Expression::Binary(BinaryOp::Sequence, _) = arg {
-                            BinaryOp::Function
-                        } else {
-                            match left {
-                                Expression::Nullary(NullaryOp::Symbol(_))
+                        let arg =
+                            self.parse_bracket(next, CLOSING_BRACKET[&s], pos)?;
+                        let op =
+                            if let Expression::Binary(BinaryOp::Sequence, _) =
+                                arg
+                            {
+                                BinaryOp::Function
+                            } else {
+                                match left {
+                                    Expression::Nullary(NullaryOp::Symbol(
+                                        _,
+                                    ))
                                     | Expression::Nullary(NullaryOp::Log)
                                     | Expression::Nullary(NullaryOp::Exp)
                                     | Expression::Nullary(NullaryOp::Sin)
@@ -240,24 +265,43 @@ impl<'a> Parser<'a> {
                                     | Expression::Nullary(NullaryOp::ATanh)
                                     | Expression::Nullary(NullaryOp::Sqrt)
                                     | Expression::Nullary(NullaryOp::OverHat)
-                                    | Expression::Nullary(NullaryOp::OverTilde)
-                                    => BinaryOp::Function,
-                                Expression::Binary(BinaryOp::Function, ref arg)
-                                    if arg.0 == Expression::Nullary(NullaryOp::Subscript)
-                                    ||arg.0 == Expression::Nullary(NullaryOp::Superscript)
-                                    => BinaryOp::Function,
-                                _ => return Err(ParseError::MulParsedAsFunction(left))
-                            }
-                        };
+                                    | Expression::Nullary(
+                                        NullaryOp::OverTilde,
+                                    ) => BinaryOp::Function,
+                                    Expression::Binary(
+                                        BinaryOp::Function,
+                                        ref arg,
+                                    ) if arg.0
+                                        == Expression::Nullary(
+                                            NullaryOp::Subscript,
+                                        )
+                                        || arg.0
+                                            == Expression::Nullary(
+                                                NullaryOp::Superscript,
+                                            ) =>
+                                    {
+                                        BinaryOp::Function
+                                    }
+                                    _ => {
+                                        return Err(
+                                            ParseError::MulParsedAsFunction(
+                                                left,
+                                            ),
+                                        )
+                                    }
+                                }
+                            };
                         Ok(Expression::Binary(op, Box::new((left, arg))))
-                    },
+                    }
                     Some(arity) => unreachable!(
-                        "Internal error: {:?} has LEFT_ARITY {:?}", s, arity
+                        "Internal error: {:?} has LEFT_ARITY {:?}",
+                        s, arity
                     ),
                     None => {
                         debug!("no operator found: treat as multiplication");
                         trace!("left multiplier: {:?}", left);
-                        let rhs = if let Some(closing) = CLOSING_BRACKET.get(&s) {
+                        let rhs = if let Some(closing) = CLOSING_BRACKET.get(&s)
+                        {
                             self.parse_bracket(next, *closing, pos)?
                         } else {
                             // rewind lexer
@@ -267,10 +311,13 @@ impl<'a> Parser<'a> {
                             self.parse_with(next, PREC_TIMES)?
                         };
                         trace!("right multiplier: {:?}", rhs);
-                        Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
+                        Ok(Expression::Binary(
+                            BinaryOp::Times,
+                            Box::new((left, rhs)),
+                        ))
                     }
                 }
-            },
+            }
             Some((_, ref pos)) => {
                 // rewind lexer
                 self.lexer = Lexer::for_input(self.input);
@@ -282,20 +329,34 @@ impl<'a> Parser<'a> {
                     trace!("argument: {arg:?}");
                     if let Expression::Binary(BinaryOp::Power, args) = left {
                         let (fun, pow) = *args;
-                        let fun = Expression::Binary(BinaryOp::Function, Box::new((fun, arg)));
-                        Ok(Expression::Binary(BinaryOp::Power, Box::new((fun, pow))))
+                        let fun = Expression::Binary(
+                            BinaryOp::Function,
+                            Box::new((fun, arg)),
+                        );
+                        Ok(Expression::Binary(
+                            BinaryOp::Power,
+                            Box::new((fun, pow)),
+                        ))
                     } else {
-                        Ok(Expression::Binary(BinaryOp::Function, Box::new((left, arg))))
+                        Ok(Expression::Binary(
+                            BinaryOp::Function,
+                            Box::new((left, arg)),
+                        ))
                     }
                 } else {
                     debug!("no operator found: treat as multiplication");
                     trace!("left multiplier: {:?}", left);
                     let rhs = self.parse_with(next, PREC_TIMES)?;
                     trace!("right multiplier: {:?}", rhs);
-                    Ok(Expression::Binary(BinaryOp::Times, Box::new((left, rhs))))
+                    Ok(Expression::Binary(
+                        BinaryOp::Times,
+                        Box::new((left, rhs)),
+                    ))
                 }
-            },
-            None => Err(SyntaxError::new(EarlyEof(LEFT_TOKENS), self.pos()).into())
+            }
+            None => {
+                Err(SyntaxError::new(EarlyEof(LEFT_TOKENS), self.pos()).into())
+            }
         }
     }
 
@@ -309,14 +370,27 @@ fn is_operator_like_fn(expr: &Expression<'_>) -> bool {
     use NullaryOp::*;
     match expr {
         Nullary(
-            Log | Sin | Cos | Tan | Sinh | Cosh | Tanh | ASin | ACos |
-            ATan | ASinh | ACosh | ATanh
+            Log | Sin | Cos | Tan | Sinh | Cosh | Tanh | ASin | ACos | ATan
+            | ASinh | ACosh | ATanh,
         ) => true,
-        Binary(BinaryOp::Power, args) => matches!(args.0, Nullary(
-            Log | Sin | Cos | Tan | Sinh | Cosh | Tanh | ASin | ACos |
-            ATan | ASinh | ACosh | ATanh
-        )),
-        _ => false
+        Binary(BinaryOp::Power, args) => matches!(
+            args.0,
+            Nullary(
+                Log | Sin
+                    | Cos
+                    | Tan
+                    | Sinh
+                    | Cosh
+                    | Tanh
+                    | ASin
+                    | ACos
+                    | ATan
+                    | ASinh
+                    | ACosh
+                    | ATanh
+            )
+        ),
+        _ => false,
     }
 }
 
@@ -333,7 +407,7 @@ fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
                     // default to multiplication
                     PREC_TIMES
                 }
-            },
+            }
         }
     } else {
         0
@@ -349,7 +423,7 @@ fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
             Token::Static(StaticToken::PlusMinus) => PREC_UPLUS_MINUS,
             Token::Static(StaticToken::MinusPlus) => PREC_UMINUS_PLUS,
             Token::Static(StaticToken::Not) => PREC_NOT,
-            _ => left_binding_power(token)
+            _ => left_binding_power(token),
         }
     } else {
         left_binding_power(token)
@@ -358,52 +432,47 @@ fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
 
 fn bracket_to_expr(
     opening: StaticToken,
-    arg: Expression<'_>
+    arg: Expression<'_>,
 ) -> Expression<'_> {
     use Expression::Unary;
     use UnaryOp::*;
     let op = match opening {
-        StaticToken::LeftAngleBracket  => Angle,
-        StaticToken::LeftBracket       => Bracket,
-        StaticToken::LeftCeiling       => Ceiling,
-        StaticToken::LeftFloor         => Floor,
-        StaticToken::LeftList          => List,
-        StaticToken::LeftBrace         => return arg,
-        _ => panic!("Internal error: {:?} is not a bracket", opening)
+        StaticToken::LeftAngleBracket => Angle,
+        StaticToken::LeftBracket => Bracket,
+        StaticToken::LeftCeiling => Ceiling,
+        StaticToken::LeftFloor => Floor,
+        StaticToken::LeftList => List,
+        StaticToken::LeftBrace => return arg,
+        _ => panic!("Internal error: {:?} is not a bracket", opening),
     };
     Unary(op, Box::new(arg))
 }
 
-fn prefix_op_to_expr(
-    op: StaticToken,
-    arg: Expression<'_>
-) -> Expression<'_> {
+fn prefix_op_to_expr(op: StaticToken, arg: Expression<'_>) -> Expression<'_> {
     match op {
-        StaticToken::Sqrt
-            | StaticToken::OverHat
-            | StaticToken::OverTilde
-            => {
-                trace!("{op:?} with arg {:?}", arg);
-                Expression::Binary(BinaryOp::Function, Box::new((
-                    Expression::Nullary(*TOKEN_EXPRESSION.get(&op).unwrap()), arg
-                )))
-            },
+        StaticToken::Sqrt | StaticToken::OverHat | StaticToken::OverTilde => {
+            trace!("{op:?} with arg {:?}", arg);
+            Expression::Binary(
+                BinaryOp::Function,
+                Box::new((
+                    Expression::Nullary(*TOKEN_EXPRESSION.get(&op).unwrap()),
+                    arg,
+                )),
+            )
+        }
         _ => {
-            let op = *PREFIX_OP_TO_EXPR.get(&op).expect(
-                "Internal error: prefix operator to expression"
-            );
+            let op = *PREFIX_OP_TO_EXPR
+                .get(&op)
+                .expect("Internal error: prefix operator to expression");
             Expression::Unary(op, Box::new(arg))
         }
     }
 }
 
-fn postfix_op_to_expr(
-    op: StaticToken,
-    arg: Expression<'_>
-) -> Expression<'_> {
-    let op = *POSTFIX_OP_TO_EXPR.get(&op).expect(
-        "Internal error: postfix operator to expression"
-    );
+fn postfix_op_to_expr(op: StaticToken, arg: Expression<'_>) -> Expression<'_> {
+    let op = *POSTFIX_OP_TO_EXPR
+        .get(&op)
+        .expect("Internal error: postfix operator to expression");
     Expression::Unary(op, Box::new(arg))
 }
 
@@ -413,21 +482,23 @@ fn binary_op_to_expr<'a>(
     right: Expression<'a>,
 ) -> Result<Expression<'a>, ErrorKind> {
     use Expression::Binary;
-    let op = *BINARY_OP_TO_EXPR.get(&op).expect(
-        "Internal error: postfix operator to expression"
-    );
+    let op = *BINARY_OP_TO_EXPR
+        .get(&op)
+        .expect("Internal error: postfix operator to expression");
     match assoc(op) {
-        Assoc::Left => {},
+        Assoc::Left => {}
         Assoc::Right => unreachable!(),
-        Assoc::None => if let Binary(left_op, left_args) = left {
-            if left_op == op {
-                return Err(ErrorKind::NonAssocOpChain);
-            } else {
-                // restore left arg
-                let left = Binary(left_op, left_args);
-                return Ok(Binary(op, Box::new((left, right))));
+        Assoc::None => {
+            if let Binary(left_op, left_args) = left {
+                if left_op == op {
+                    return Err(ErrorKind::NonAssocOpChain);
+                } else {
+                    // restore left arg
+                    let left = Binary(left_op, left_args);
+                    return Ok(Binary(op, Box::new((left, right))));
+                }
             }
-        },
+        }
     };
     Ok(Binary(op, Box::new((left, right))))
 }

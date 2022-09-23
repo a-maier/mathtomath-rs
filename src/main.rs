@@ -7,27 +7,27 @@ extern crate maplit;
 #[macro_use]
 extern crate phf;
 
-mod error;
-mod expression;
 mod arity;
 mod assoc;
+mod cfg;
+mod error;
+mod expression;
 mod formats;
 mod range;
-mod cfg;
 
-use expression::Expression;
+use ansi_term::Colour::Red;
+use clap::{ArgEnum, Parser};
 use error::{Context, Error, ParseError, SyntaxError};
-use subslice::SubsliceExt;
+use expression::Expression;
 use std::{
-    io::{self, Read},
     fs::File,
+    io::{self, Read},
     path::PathBuf,
     str::from_utf8,
 };
-use ansi_term::Colour::Red;
-use clap::{ArgEnum, Parser};
+use subslice::SubsliceExt;
 
-#[derive(ArgEnum,Copy,Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(ArgEnum, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 enum Format {
     Form,
     Latex,
@@ -69,26 +69,33 @@ fn read_expression(filepath: &Option<PathBuf>) -> io::Result<Vec<u8>> {
 fn get_context(input: &[u8], pos: usize) -> Option<Context> {
     let (before, after) = input.split_at(pos);
     let line = before.iter().filter(|&&c| c == b'\n').count() + 1;
-    let before: Vec<u8> = before.iter().rev().take_while(|&&c| c != b'\n').copied().collect();
+    let before: Vec<u8> = before
+        .iter()
+        .rev()
+        .take_while(|&&c| c != b'\n')
+        .copied()
+        .collect();
     let before: Vec<u8> = before.into_iter().rev().collect();
     let before = from_utf8(&before).ok()?.to_owned();
-    let after: Vec<_> = after.iter().take_while(|&&c| c != b'\n').copied().collect();
+    let after: Vec<_> =
+        after.iter().take_while(|&&c| c != b'\n').copied().collect();
     let after = from_utf8(&after).ok()?.to_owned();
 
-    Some(Context{line, before, after})
+    Some(Context {
+        line,
+        before,
+        after,
+    })
 }
 
-fn parse(
-    input: &[u8],
-    format: Format
-) -> Result<Expression<'_>, ParseError> {
+fn parse(input: &[u8], format: Format) -> Result<Expression<'_>, ParseError> {
     use Format::*;
     info!("parsing in format {:?}", format);
     let res = match format {
         Form => formats::form::parser::parse(input),
         Mathematica => match from_utf8(input) {
             Ok(input) => formats::mathematica::parser::parse(input),
-            Err(err) => Err(SyntaxError::from(err))
+            Err(err) => Err(SyntaxError::from(err)),
         },
         Latex => formats::latex::parser::parse(input),
     };
@@ -97,22 +104,26 @@ fn parse(
 
 fn write_expression(
     expr: Expression<'_>,
-    format: Format
+    format: Format,
 ) -> Result<(), std::io::Error> {
     use Format::*;
     info!("writing expression");
     let stdout = io::stdout();
     let mut handle = stdout.lock();
     match format {
-        Form => formats::form::formatter::Formatter::new(expr).format(&mut handle),
-        Mathematica => formats::mathematica::formatter::Formatter::new(expr).format(&mut handle),
-        Latex => formats::latex::formatter::Formatter::new(expr).format(&mut handle),
+        Form => {
+            formats::form::formatter::Formatter::new(expr).format(&mut handle)
+        }
+        Mathematica => formats::mathematica::formatter::Formatter::new(expr)
+            .format(&mut handle),
+        Latex => {
+            formats::latex::formatter::Formatter::new(expr).format(&mut handle)
+        }
     }
 }
 
 fn main() {
     let exit_code = if let Err(err) = run() {
-
         eprintln!("{}", err);
         if let Error::Parse(err) = err {
             if let Some(context) = err.context {
@@ -141,14 +152,14 @@ fn run() -> Result<(), Error> {
     }
     let input = read_expression(&opt.file)?;
     let transformed;
-    let expression = if opt.informat == Format::Mathematica
-        && input.find(b"\\[") != None
-    {
-        transformed = formats::mathematica::unicode::mathematica_to_utf8(&input)?;
-        parse(&transformed, opt.informat)?
-    } else {
-        parse(&input, opt.informat)?
-    };
+    let expression =
+        if opt.informat == Format::Mathematica && input.find(b"\\[") != None {
+            transformed =
+                formats::mathematica::unicode::mathematica_to_utf8(&input)?;
+            parse(&transformed, opt.informat)?
+        } else {
+            parse(&input, opt.informat)?
+        };
     write_expression(expression, opt.outformat)?;
     println!();
     Ok(())

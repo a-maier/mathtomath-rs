@@ -1,7 +1,7 @@
-use std::default::Default;
 use confy::ConfyError;
-use serde_derive::{Serialize, Deserialize};
 use log::{debug, trace};
+use serde_derive::{Deserialize, Serialize};
+use std::default::Default;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) enum BracketSizing {
@@ -26,12 +26,12 @@ pub(crate) struct LatexOutputCfg {
     pub(crate) align_at: Vec<String>,
     pub(crate) tags: bool,
     pub(crate) indent_with: String,
-    pub(crate) subscript_size: f64
+    pub(crate) subscript_size: f64,
 }
 
 impl Default for LatexOutputCfg {
     fn default() -> Self {
-        Self{
+        Self {
             bracket_types: vec![
                 "(".to_string(),
                 ")".to_string(),
@@ -48,7 +48,7 @@ impl Default for LatexOutputCfg {
             align_at: vec!["=".to_string()],
             tags: false,
             indent_with: "   ".to_string(),
-            subscript_size: 0.7
+            subscript_size: 0.7,
         }
     }
 }

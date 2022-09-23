@@ -1,8 +1,8 @@
 use super::lexer;
 
-use std::str;
 use crate::assoc::Assoc;
 use crate::expression::BinaryOp;
+use std::str;
 
 // obtained from Mathematica 12.0:
 //
@@ -213,6 +213,6 @@ pub fn assoc(op: BinaryOp) -> Assoc {
     use Assoc::*;
     match op {
         BinaryOp::Power => Right,
-        _ => Left
+        _ => Left,
     }
 }

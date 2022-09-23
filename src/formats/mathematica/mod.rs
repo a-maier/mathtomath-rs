@@ -1,6 +1,6 @@
 pub mod formatter;
+mod grammar;
 pub mod lexer;
 pub mod parser;
-pub mod unicode;
-mod grammar;
 mod tokens;
+pub mod unicode;

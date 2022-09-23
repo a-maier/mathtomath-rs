@@ -1,11 +1,11 @@
 // TODO: line length inside \frac
 use super::grammar::*;
 use crate::assoc::Assoc;
+use crate::cfg::{BracketSizing, LatexOutputCfg, CFG};
 use crate::expression::*;
-use crate::cfg::{BracketSizing, CFG, LatexOutputCfg};
 
-use std::io::{self, Write};
 use std::collections::HashMap;
+use std::io::{self, Write};
 use std::mem::swap;
 
 use aho_corasick::AhoCorasick;
@@ -14,23 +14,23 @@ const NEWLINE: &[u8] = b"\\\\\n";
 
 pub type Result = std::result::Result<(), std::io::Error>;
 
-#[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Formatter<'a> {
-    expression: Expression<'a>
+    expression: Expression<'a>,
 }
 
 impl<'a> Formatter<'a> {
     pub fn new(expression: Expression<'a>) -> Self {
-        Formatter{expression}
+        Formatter { expression }
     }
 
     pub fn format<W: io::Write>(self, w: &mut W) -> Result {
-        Printer::new().format(w,self.expression)
+        Printer::new().format(w, self.expression)
     }
 }
 
-#[derive(Clone,Debug)]
-struct Printer{
+#[derive(Clone, Debug)]
+struct Printer {
     cfg: &'static LatexOutputCfg,
     linebreak_allowed: bool,
     subscript_level: usize,
@@ -44,12 +44,12 @@ const MIN_FRAC_BRACKET_LEVEL: u32 = 3;
 
 impl Printer {
     fn new() -> Self {
-        Printer{
+        Printer {
             cfg: &CFG.latex_output,
             linebreak_allowed: true,
             subscript_level: 0,
             open_brackets: 0,
-            line: Vec::with_capacity(2*CFG.latex_output.line_length),
+            line: Vec::with_capacity(2 * CFG.latex_output.line_length),
             cur_line_len: 0.,
             align_finder: AhoCorasick::new(&CFG.latex_output.align_at),
         }
@@ -64,7 +64,9 @@ impl Printer {
         debug!("dumping line {:?}", std::str::from_utf8(&self.line));
         let align_pos = if let Some(mat) = self.align_finder.find(&self.line) {
             mat.end()
-        } else if let Some(pos) = self.line.windows(NEWLINE.len()).position(|w| w == NEWLINE) {
+        } else if let Some(pos) =
+            self.line.windows(NEWLINE.len()).position(|w| w == NEWLINE)
+        {
             pos + NEWLINE.len()
         } else {
             0
@@ -101,7 +103,11 @@ impl Printer {
 
     fn write_all<W: io::Write>(&mut self, w: &mut W, buf: &[u8]) -> Result {
         if self.cur_line_len >= self.cfg.line_length as f64
-            && self.cfg.line_break_before.iter().any(|s| s.as_bytes() == buf)
+            && self
+                .cfg
+                .line_break_before
+                .iter()
+                .any(|s| s.as_bytes() == buf)
             && self.linebreak_allowed
             && self.subscript_level == 0
         {
@@ -131,8 +137,10 @@ impl Printer {
     ) -> Result {
         match self.cfg.bracket_sizing {
             BracketSizing::LeftRight => self.write_all(w, br"\left")?,
-            BracketSizing::Incremental => self.write_all(w, self.bracket_size(bracket_level))?,
-            BracketSizing::None => { }
+            BracketSizing::Incremental => {
+                self.write_all(w, self.bracket_size(bracket_level))?
+            }
+            BracketSizing::None => {}
         };
         self.write_all(w, bracket)?;
         self.open_brackets += 1;
@@ -147,8 +155,10 @@ impl Printer {
     ) -> Result {
         match self.cfg.bracket_sizing {
             BracketSizing::LeftRight => self.write_all(w, br"\right")?,
-            BracketSizing::Incremental => self.write_all(w, self.bracket_size(bracket_level))?,
-            BracketSizing::None => { }
+            BracketSizing::Incremental => {
+                self.write_all(w, self.bracket_size(bracket_level))?
+            }
+            BracketSizing::None => {}
         };
         self.write_all(w, bracket)?;
         self.open_brackets -= 1;
@@ -200,9 +210,9 @@ impl Printer {
     }
 
     fn add_to_line_len(&mut self, len: usize) {
-        self.cur_line_len += self.cfg.subscript_size.powi(
-            self.subscript_level as i32
-        ) * (len as f64);
+        self.cur_line_len +=
+            self.cfg.subscript_size.powi(self.subscript_level as i32)
+                * (len as f64);
     }
 
     fn write_buf<W: io::Write>(
@@ -216,13 +226,13 @@ impl Printer {
             Number(n) => {
                 self.write_all(w, n)?;
                 self.add_to_line_len(n.len())
-            },
+            }
             String(s) => {
                 self.write_all(w, b"\\text{")?;
                 self.write_all(w, s)?;
                 self.write_all(w, b"}")?;
                 self.add_to_line_len(s.len())
-            },
+            }
             Symbol(s) => {
                 if let Some(s) = LATEX_SYMBOLS.get(s) {
                     self.write_all(w, s)?;
@@ -236,30 +246,30 @@ impl Printer {
                     self.write_all(w, b"}")?;
                     self.add_to_line_len(s.len())
                 }
-            },
+            }
             Nullary(op) => self.write_all(w, op)?,
             Prefix(op, arg) => {
                 self.write_all(w, op)?;
                 self.add_to_line_len(op.len());
                 self.write_buf(w, *arg)?;
-            },
+            }
             Postfix(arg, op) => {
                 self.write_buf(w, *arg)?;
                 self.write_all(w, op)?;
                 self.add_to_line_len(op.len());
-            },
+            }
             Infix(left_arg, op, right_arg) => {
                 self.write_buf(w, *left_arg)?;
                 self.write_all(w, op)?;
                 self.add_to_line_len(op.len());
                 self.write_buf(w, *right_arg)?;
-            },
+            }
             Circumfix(left, arg, right) => {
                 let bracket_level = arg.bracket_level;
                 self.write_maybe_left_bracket(w, left, bracket_level)?;
                 self.write_buf(w, *arg)?;
                 self.write_maybe_right_bracket(w, right, bracket_level)?;
-            },
+            }
             Function(head, left, arg, right) => {
                 let bracket_level = arg.bracket_level;
                 if self.cfg.line_break_in_argument {
@@ -272,11 +282,15 @@ impl Printer {
                     printer.write_buf(w, *head)?;
                     printer.write_maybe_left_bracket(w, left, bracket_level)?;
                     printer.write_buf(w, *arg)?;
-                    printer.write_maybe_right_bracket(w, right, bracket_level)?;
+                    printer.write_maybe_right_bracket(
+                        w,
+                        right,
+                        bracket_level,
+                    )?;
                     swap(&mut self.line, &mut printer.line);
                     swap(&mut self.cur_line_len, &mut printer.cur_line_len);
                 }
-            },
+            }
             SubOrSuper(left_arg, op, right_arg) => {
                 //self.write_all(w, b"{")?;
                 self.write_buf(w, *left_arg)?;
@@ -287,7 +301,7 @@ impl Printer {
                 self.write_buf(w, *right_arg)?;
                 self.write_all(w, b"}")?;
                 self.subscript_level -= 1;
-            },
+            }
             Frac(head, num, sep, den, term) => {
                 let len_before = self.cur_line_len;
                 let mut printer = self.clone().into_unbreakable();
@@ -300,13 +314,13 @@ impl Printer {
                 let den_len = printer.cur_line_len - len_before - num_len;
                 swap(&mut self.line, &mut printer.line);
                 self.cur_line_len += num_len.max(den_len);
-            },
+            }
             UnknownNullary(sym) => {
                 let mut buf = Vec::new();
                 write!(buf, "\\text{{{:?}}}", sym)?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
-            },
+            }
             UnknownUnary(sym, arg) => {
                 let bracket_level = arg.bracket_level;
                 let mut buf = Vec::new();
@@ -316,31 +330,32 @@ impl Printer {
                 self.write_left_bracket(w, b"(", bracket_level)?;
                 self.write_buf(w, *arg)?;
                 self.write_right_bracket(w, b")", bracket_level)?;
-            },
+            }
             UnknownBinary(sym, left, right) => {
                 let mut buf = Vec::new();
                 write!(buf, "\\text{{{:?}}}", sym)?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
-                let bracket_level = std::cmp::max(left.bracket_level, right.bracket_level);
+                let bracket_level =
+                    std::cmp::max(left.bracket_level, right.bracket_level);
                 self.write_left_bracket(w, b"(", bracket_level)?;
-                let arg = ExpressionProperties{
+                let arg = ExpressionProperties {
                     prec: PREC_SEQUENCE,
                     kind: Infix(left, b",", right),
-                    bracket_level
+                    bracket_level,
                 };
                 self.write_buf(w, arg)?;
                 self.write_right_bracket(w, b")", bracket_level)?;
-            },
+            }
         };
         Ok(())
     }
 
     fn properties<'a>(
         &self,
-        expression: Expression<'a>
+        expression: Expression<'a>,
     ) -> ExpressionProperties<'a> {
-        use Expression::{Unary, Binary};
+        use Expression::{Binary, Unary};
         use ExpressionKind::*;
         let (prec, kind, bracket_level) = match expression {
             Expression::Nullary(nullary) => {
@@ -373,78 +388,128 @@ impl Printer {
                     unknown => UnknownNullary(unknown),
                 };
                 (PREC_ATOM, kind, 0)
-            },
+            }
             Unary(unary, arg) => {
                 let arg_prop = Box::new(self.properties(*arg));
                 let mut bracket_level = outer_bracket_level(&arg_prop);
                 let (prec, kind) = match unary {
-                    UnaryOp::Bracket => (PREC_LEFT_BRACKET, Circumfix(
-                        self.left_bracket(bracket_level),
-                        arg_prop,
-                        self.right_bracket(bracket_level),
-                    )),
+                    UnaryOp::Bracket => (
+                        PREC_LEFT_BRACKET,
+                        Circumfix(
+                            self.left_bracket(bracket_level),
+                            arg_prop,
+                            self.right_bracket(bracket_level),
+                        ),
+                    ),
                     // ignore wildcard modifieres
                     UnaryOp::Wildcard
-                        | UnaryOp::ManyWildcard
-                        | UnaryOp::Many0Wildcard
-                        => (PREC_WILDCARD, Postfix(arg_prop, b"")),
+                    | UnaryOp::ManyWildcard
+                    | UnaryOp::Many0Wildcard => {
+                        (PREC_WILDCARD, Postfix(arg_prop, b""))
+                    }
                     UnaryOp::UPlus => (PREC_PLUS, Prefix(b"+", arg_prop)),
                     UnaryOp::UMinus => (PREC_UMINUS, Prefix(b"-", arg_prop)),
-                    UnaryOp::Angle => (PREC_LEFT_BRACKET, Circumfix(b"\\langle", arg_prop, b"\\rangle")),
-                    UnaryOp::Ceiling => (PREC_LEFT_BRACKET, Circumfix(b"\\lceil", arg_prop, b"\\rceil")),
-                    UnaryOp::Floor => (PREC_LEFT_BRACKET, Circumfix(b"\\lfloor", arg_prop, b"\\rfloor")),
-                    UnaryOp::List => (PREC_LEFT_BRACKET, Circumfix(b"\\{", arg_prop, b"\\}")),
+                    UnaryOp::Angle => (
+                        PREC_LEFT_BRACKET,
+                        Circumfix(b"\\langle", arg_prop, b"\\rangle"),
+                    ),
+                    UnaryOp::Ceiling => (
+                        PREC_LEFT_BRACKET,
+                        Circumfix(b"\\lceil", arg_prop, b"\\rceil"),
+                    ),
+                    UnaryOp::Floor => (
+                        PREC_LEFT_BRACKET,
+                        Circumfix(b"\\lfloor", arg_prop, b"\\rfloor"),
+                    ),
+                    UnaryOp::List => {
+                        (PREC_LEFT_BRACKET, Circumfix(b"\\{", arg_prop, b"\\}"))
+                    }
                     UnaryOp::Del => (PREC_DEL, Prefix(b"\\nabla ", arg_prop)),
-                    UnaryOp::Exists => (PREC_EXISTS, Prefix(b"\\exists ", arg_prop)),
-                    UnaryOp::ForAll => (PREC_FOR_ALL, Prefix(b"\\forall ", arg_prop)),
-                    UnaryOp::UMinusPlus => (PREC_UMINUS_PLUS, Prefix(b"\\mp ", arg_prop)),
+                    UnaryOp::Exists => {
+                        (PREC_EXISTS, Prefix(b"\\exists ", arg_prop))
+                    }
+                    UnaryOp::ForAll => {
+                        (PREC_FOR_ALL, Prefix(b"\\forall ", arg_prop))
+                    }
+                    UnaryOp::UMinusPlus => {
+                        (PREC_UMINUS_PLUS, Prefix(b"\\mp ", arg_prop))
+                    }
                     UnaryOp::Not => (PREC_NOT, Prefix(b"!", arg_prop)),
-                    UnaryOp::NotExists => (PREC_NOT_EXISTS, Prefix(b"\\nexists ", arg_prop)),
-                    UnaryOp::UPlusMinus => (PREC_UPLUS_MINUS, Prefix(b"\\pm ", arg_prop)),
+                    UnaryOp::NotExists => {
+                        (PREC_NOT_EXISTS, Prefix(b"\\nexists ", arg_prop))
+                    }
+                    UnaryOp::UPlusMinus => {
+                        (PREC_UPLUS_MINUS, Prefix(b"\\pm ", arg_prop))
+                    }
                     UnaryOp::Transpose => (
                         PREC_POWER,
-                        Infix(arg_prop, b"^", Box::new(self.properties(Expression::Nullary(NullaryOp::Symbol(b"T")))))
+                        Infix(
+                            arg_prop,
+                            b"^",
+                            Box::new(self.properties(Expression::Nullary(
+                                NullaryOp::Symbol(b"T"),
+                            ))),
+                        ),
                     ),
-                    UnaryOp::Conjugate => (
-                        PREC_ATOM,
-                        Circumfix(b"\\overline{", arg_prop, b"}")
-                    ),
+                    UnaryOp::Conjugate => {
+                        (PREC_ATOM, Circumfix(b"\\overline{", arg_prop, b"}"))
+                    }
                     UnaryOp::ConjugateTranspose => (
                         PREC_POWER,
-                        Infix(arg_prop, b"^", Box::new(self.properties(Expression::Nullary(NullaryOp::Symbol(b"\\dagger")))))
+                        Infix(
+                            arg_prop,
+                            b"^",
+                            Box::new(self.properties(Expression::Nullary(
+                                NullaryOp::Symbol(b"\\dagger"),
+                            ))),
+                        ),
                     ),
-                    UnaryOp::Degree => (PREC_DEGREE, Postfix(arg_prop, b"\\deg")),
-                    UnaryOp::Factorial => (PREC_FACTORIAL, Postfix(arg_prop, b"!")),
-                    UnaryOp::DoubleFactorial => (PREC_FACTORIAL2, Postfix(arg_prop, b"!!")),
+                    UnaryOp::Degree => {
+                        (PREC_DEGREE, Postfix(arg_prop, b"\\deg"))
+                    }
+                    UnaryOp::Factorial => {
+                        (PREC_FACTORIAL, Postfix(arg_prop, b"!"))
+                    }
+                    UnaryOp::DoubleFactorial => {
+                        (PREC_FACTORIAL2, Postfix(arg_prop, b"!!"))
+                    }
                     unknown => (PREC_ATOM, UnknownUnary(unknown, arg_prop)),
                 };
                 // add brackets if necessary
                 let kind = match kind {
-                    Prefix(op, arg) => if arg.prec >= prec {
-                        Prefix(op, arg)
-                    } else {
-                        bracket_level += 1;
-                        Prefix(op, self.add_bracket(arg))
-                    },
-                    Postfix(arg, op) => if arg.prec >= prec {
-                        Postfix(arg, op)
-                    } else {
-                        bracket_level += 1;
-                        Postfix(self.add_bracket(arg), op)
-                    },
-                    other => other
+                    Prefix(op, arg) => {
+                        if arg.prec >= prec {
+                            Prefix(op, arg)
+                        } else {
+                            bracket_level += 1;
+                            Prefix(op, self.add_bracket(arg))
+                        }
+                    }
+                    Postfix(arg, op) => {
+                        if arg.prec >= prec {
+                            Postfix(arg, op)
+                        } else {
+                            bracket_level += 1;
+                            Postfix(self.add_bracket(arg), op)
+                        }
+                    }
+                    other => other,
                 };
                 (prec, kind, bracket_level)
-            },
+            }
             Binary(binary, args) => {
                 let (left, right) = *args;
                 if let Assoc::Right | Assoc::None = assoc(binary) {
                     if let Binary(left_op, _) = left {
                         if left_op == binary {
-                            let left = Expression::Unary(UnaryOp::Bracket, Box::new(left));
-                            return self.properties(
-                                Expression::Binary(binary, Box::new((left, right)))
+                            let left = Expression::Unary(
+                                UnaryOp::Bracket,
+                                Box::new(left),
                             );
+                            return self.properties(Expression::Binary(
+                                binary,
+                                Box::new((left, right)),
+                            ));
                         }
                     }
                 };
@@ -452,51 +517,75 @@ impl Printer {
                 let right = Box::new(self.properties(right));
                 let mut bracket_level = std::cmp::max(
                     outer_bracket_level(&left),
-                    outer_bracket_level(&right)
+                    outer_bracket_level(&right),
                 );
                 let (prec, kind) = match binary {
                     BinaryOp::Plus => (PREC_PLUS, Infix(left, b"+", right)),
                     BinaryOp::Minus => (PREC_MINUS, Infix(left, b"-", right)),
-                    BinaryOp::Times => (PREC_TIMES, Infix(left, self.cfg.multiplication_symbol.as_bytes(), right)),
+                    BinaryOp::Times => (
+                        PREC_TIMES,
+                        Infix(
+                            left,
+                            self.cfg.multiplication_symbol.as_bytes(),
+                            right,
+                        ),
+                    ),
                     BinaryOp::Divide => {
                         let left = self.remove_bracket(left);
                         let right = self.remove_bracket(right);
                         bracket_level = std::cmp::max(
                             outer_bracket_level(&left),
-                            outer_bracket_level(&right)
+                            outer_bracket_level(&right),
                         );
-                        let min_bracket_level = MIN_FRAC_BRACKET_LEVEL * (
-                            self.cfg.bracket_types.len() as u32
-                        ) / 2;
-                        let min_bracket_level = self.cfg.subscript_size.powi(
-                            self.subscript_level as i32
-                        ) * (min_bracket_level as f64);
+                        let min_bracket_level = MIN_FRAC_BRACKET_LEVEL
+                            * (self.cfg.bracket_types.len() as u32)
+                            / 2;
+                        let min_bracket_level = self
+                            .cfg
+                            .subscript_size
+                            .powi(self.subscript_level as i32)
+                            * (min_bracket_level as f64);
                         let min_bracket_level = min_bracket_level.round();
                         if bracket_level < min_bracket_level as _ {
                             bracket_level = min_bracket_level as _;
                         }
-                        (PREC_DIVIDE, Frac(b"\\frac{", left, b"}{", right, b"}"))
-                    },
-                    BinaryOp::Compound => (PREC_COMPOUND_EXPRESSION, Infix(left, b";", right)),
-                    BinaryOp::Sequence => (PREC_SEQUENCE, Infix(left, b",", right)),
+                        (
+                            PREC_DIVIDE,
+                            Frac(b"\\frac{", left, b"}{", right, b"}"),
+                        )
+                    }
+                    BinaryOp::Compound => {
+                        (PREC_COMPOUND_EXPRESSION, Infix(left, b";", right))
+                    }
+                    BinaryOp::Sequence => {
+                        (PREC_SEQUENCE, Infix(left, b",", right))
+                    }
                     BinaryOp::Equals => (PREC_EQUAL, Infix(left, b"=", right)),
                     BinaryOp::Dot => (PREC_DOT, Infix(left, b".", right)),
                     BinaryOp::Power | BinaryOp::Superscript => {
                         let right = self.remove_bracket(right);
                         (PREC_POWER, SubOrSuper(left, b"^", right))
-                    },
+                    }
                     BinaryOp::Subscript => {
                         let right = self.remove_bracket(right);
                         (PREC_ATOM, SubOrSuper(left, b"_", right))
-                    },
+                    }
                     BinaryOp::Function => {
                         if left.kind == Nullary(b"\\sqrt") {
-                            (PREC_LEFT_BRACKET, Circumfix(b"\\sqrt{", right, b"}"))
+                            (
+                                PREC_LEFT_BRACKET,
+                                Circumfix(b"\\sqrt{", right, b"}"),
+                            )
                         } else {
-                            (PREC_LEFT_BRACKET, Function(left, b"(", right, b")"))
+                            (
+                                PREC_LEFT_BRACKET,
+                                Function(left, b"(", right, b")"),
+                            )
                         }
-                    },
-                    unknown => (PREC_LEFT_BRACKET, UnknownBinary(unknown, left, right)),
+                    }
+                    unknown => {
+                        (PREC_LEFT_BRACKET, UnknownBinary(unknown, left, right))
+                    }
                 };
                 let kind = match kind {
                     Infix(mut left, op, mut right) => {
@@ -508,94 +597,128 @@ impl Printer {
                         }
                         bracket_level = std::cmp::max(
                             outer_bracket_level(&left),
-                            outer_bracket_level(&right)
+                            outer_bracket_level(&right),
                         );
                         Infix(left, op, right)
-                    },
-                    Function(head, open, arg, close) => if head.prec >= prec {
-                        Function(head, open, arg, close)
-                    } else {
-                        Function(self.add_bracket(head), open, arg, close)
-                    },
-                    SubOrSuper(base, op, arg) => if base.prec >= prec {
-                        SubOrSuper(base, op, arg)
-                    } else {
-                        SubOrSuper(self.add_bracket(base), op, arg)
-                    },
-                    other => other
+                    }
+                    Function(head, open, arg, close) => {
+                        if head.prec >= prec {
+                            Function(head, open, arg, close)
+                        } else {
+                            Function(self.add_bracket(head), open, arg, close)
+                        }
+                    }
+                    SubOrSuper(base, op, arg) => {
+                        if base.prec >= prec {
+                            SubOrSuper(base, op, arg)
+                        } else {
+                            SubOrSuper(self.add_bracket(base), op, arg)
+                        }
+                    }
+                    other => other,
                 };
                 (prec, kind, bracket_level)
             }
         };
-        ExpressionProperties{prec, kind, bracket_level}
+        ExpressionProperties {
+            prec,
+            kind,
+            bracket_level,
+        }
     }
 
     fn left_bracket(&self, bracket_level: u32) -> &'static [u8] {
         let nbrackets = self.cfg.bracket_types.len();
-        self.cfg.bracket_types[(2 * bracket_level as usize) % nbrackets].as_bytes()
+        self.cfg.bracket_types[(2 * bracket_level as usize) % nbrackets]
+            .as_bytes()
     }
 
     fn right_bracket(&self, bracket_level: u32) -> &'static [u8] {
         let nbrackets = self.cfg.bracket_types.len();
-        self.cfg.bracket_types[(1 + 2 * bracket_level as usize) % nbrackets].as_bytes()
+        self.cfg.bracket_types[(1 + 2 * bracket_level as usize) % nbrackets]
+            .as_bytes()
     }
 
     fn remove_bracket<'a>(
         &self,
-        expr: Box<ExpressionProperties<'a>>
+        expr: Box<ExpressionProperties<'a>>,
     ) -> Box<ExpressionProperties<'a>> {
         let bracket_level = expr.bracket_level;
         match expr.kind {
             ExpressionKind::Circumfix(left, arg, right)
                 if left == self.left_bracket(bracket_level)
-                && right == self.right_bracket(bracket_level)
-                => arg,
-            _ => expr
+                    && right == self.right_bracket(bracket_level) =>
+            {
+                arg
+            }
+            _ => expr,
         }
     }
 
     fn add_bracket<'a>(
         &self,
-        expr: Box<ExpressionProperties<'a>>
+        expr: Box<ExpressionProperties<'a>>,
     ) -> Box<ExpressionProperties<'a>> {
         let bracket_level = expr.bracket_level;
-        Box::new(ExpressionProperties{
+        Box::new(ExpressionProperties {
             prec: PREC_LEFT_BRACKET,
             kind: ExpressionKind::Circumfix(
                 self.left_bracket(bracket_level),
                 expr,
-                self.right_bracket(bracket_level)
+                self.right_bracket(bracket_level),
             ),
-            bracket_level
+            bracket_level,
         })
     }
-
 }
 
-#[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 struct ExpressionProperties<'a> {
     prec: u32,
     kind: ExpressionKind<'a>,
     bracket_level: u32,
 }
 
-#[derive(Clone,Eq,PartialEq,Ord,PartialOrd,Hash,Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 enum ExpressionKind<'a> {
     Empty,
     Number(&'a [u8]),
     Symbol(&'a [u8]),
     String(&'a [u8]),
-    Nullary(&'static[u8]),
-    Prefix(&'static[u8], Box<ExpressionProperties<'a>>),
-    Infix(Box<ExpressionProperties<'a>>, &'static[u8], Box<ExpressionProperties<'a>>),
-    SubOrSuper(Box<ExpressionProperties<'a>>, &'static[u8], Box<ExpressionProperties<'a>>),
-    Postfix(Box<ExpressionProperties<'a>>, &'static[u8]),
-    Circumfix(&'static[u8], Box<ExpressionProperties<'a>>, &'static[u8]),
-    Function(Box<ExpressionProperties<'a>>, &'static[u8], Box<ExpressionProperties<'a>>, &'static[u8]),
-    Frac(&'static[u8], Box<ExpressionProperties<'a>>, &'static[u8], Box<ExpressionProperties<'a>>, &'static[u8]),
+    Nullary(&'static [u8]),
+    Prefix(&'static [u8], Box<ExpressionProperties<'a>>),
+    Infix(
+        Box<ExpressionProperties<'a>>,
+        &'static [u8],
+        Box<ExpressionProperties<'a>>,
+    ),
+    SubOrSuper(
+        Box<ExpressionProperties<'a>>,
+        &'static [u8],
+        Box<ExpressionProperties<'a>>,
+    ),
+    Postfix(Box<ExpressionProperties<'a>>, &'static [u8]),
+    Circumfix(&'static [u8], Box<ExpressionProperties<'a>>, &'static [u8]),
+    Function(
+        Box<ExpressionProperties<'a>>,
+        &'static [u8],
+        Box<ExpressionProperties<'a>>,
+        &'static [u8],
+    ),
+    Frac(
+        &'static [u8],
+        Box<ExpressionProperties<'a>>,
+        &'static [u8],
+        Box<ExpressionProperties<'a>>,
+        &'static [u8],
+    ),
     UnknownNullary(NullaryOp<'a>),
     UnknownUnary(UnaryOp, Box<ExpressionProperties<'a>>),
-    UnknownBinary(BinaryOp, Box<ExpressionProperties<'a>>, Box<ExpressionProperties<'a>>),
+    UnknownBinary(
+        BinaryOp,
+        Box<ExpressionProperties<'a>>,
+        Box<ExpressionProperties<'a>>,
+    ),
 }
 
 fn outer_bracket_level(expr: &ExpressionProperties<'_>) -> u32 {
@@ -607,7 +730,7 @@ fn outer_bracket_level(expr: &ExpressionProperties<'_>) -> u32 {
 }
 
 lazy_static! {
-    pub(crate) static ref LATEX_SYMBOLS: HashMap<&'static [u8], &'static [u8]> = hashmap!{
+    pub(crate) static ref LATEX_SYMBOLS: HashMap<&'static [u8], &'static [u8]> = hashmap! {
         "α".as_bytes() => br"\alpha" as &'static [u8],
         "β".as_bytes() => br"\beta",
         "γ".as_bytes() => br"\gamma",
