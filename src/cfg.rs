@@ -56,7 +56,7 @@ impl Default for LatexOutputCfg {
 impl Cfg {
     fn load(name: &str) -> Result<Self, ConfyError> {
         debug!("loading config from {}", name);
-        confy::load(name)
+        confy::load(name, None)
     }
 }
 
