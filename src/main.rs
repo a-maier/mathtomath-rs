@@ -16,7 +16,7 @@ mod formats;
 mod range;
 
 use ansi_term::Colour::Red;
-use clap::{ArgEnum, Parser};
+use clap::{Parser, ValueEnum};
 use error::{Context, Error, ParseError, SyntaxError};
 use expression::Expression;
 use std::{
@@ -27,7 +27,7 @@ use std::{
 };
 use subslice::SubsliceExt;
 
-#[derive(ArgEnum, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 enum Format {
     Form,
     Latex,
@@ -42,15 +42,14 @@ struct Opt {
     quiet: bool,
 
     /// Specify the format of the input expressions.
-    #[clap(short, long, aliases = &["if", "in", "from"], arg_enum)]
+    #[clap(short, long, aliases = &["if", "in", "from"])]
     informat: Format,
 
     /// Specify the format to which the input expressions will be converted.
-    #[clap(short, long, aliases = &["of", "out", "to"], arg_enum)]
+    #[clap(short, long, aliases = &["of", "out", "to"])]
     outformat: Format,
 
     /// File from which to read expressions. If omitted, expressions will be read from the command line.
-    #[clap(parse(from_os_str))]
     file: Option<PathBuf>,
 }
 

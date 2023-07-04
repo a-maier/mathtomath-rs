@@ -11,10 +11,10 @@ categories = ["mathematics", "parser-implementations"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-aho-corasick = "0.7"
-clap = { version = "3.0", features = ["derive"] }
+aho-corasick = "1.0"
+clap = { version = "4.3", features = ["derive"] }
 confy = "0.5"
-env_logger = "0.9"
+env_logger = "0.10"
 lazy_static = "1.4"
 log = "0.4"
 maplit = "1.0"
