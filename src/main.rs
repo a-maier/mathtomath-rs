@@ -27,7 +27,9 @@ use std::{
 };
 use subslice::SubsliceExt;
 
-#[derive(ValueEnum, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(
+    ValueEnum, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug,
+)]
 enum Format {
     Form,
     Latex,
@@ -151,14 +153,15 @@ fn run() -> Result<(), Error> {
     }
     let input = read_expression(&opt.file)?;
     let transformed;
-    let expression =
-        if opt.informat == Format::Mathematica && input.find(b"\\[").is_some() {
-            transformed =
-                formats::mathematica::unicode::mathematica_to_utf8(&input)?;
-            parse(&transformed, opt.informat)?
-        } else {
-            parse(&input, opt.informat)?
-        };
+    let expression = if opt.informat == Format::Mathematica
+        && input.find(b"\\[").is_some()
+    {
+        transformed =
+            formats::mathematica::unicode::mathematica_to_utf8(&input)?;
+        parse(&transformed, opt.informat)?
+    } else {
+        parse(&input, opt.informat)?
+    };
     write_expression(expression, opt.outformat)?;
     println!();
     Ok(())

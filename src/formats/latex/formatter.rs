@@ -51,9 +51,7 @@ impl Printer {
             open_brackets: 0,
             line: Vec::with_capacity(2 * CFG.latex_output.line_length),
             cur_line_len: 0.,
-            align_finder: AhoCorasick::new(
-                &CFG.latex_output.align_at
-            ).unwrap(),
+            align_finder: AhoCorasick::new(&CFG.latex_output.align_at).unwrap(),
         }
     }
 
