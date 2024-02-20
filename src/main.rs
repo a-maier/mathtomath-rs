@@ -146,13 +146,13 @@ fn run() -> Result<(), Error> {
 
     let opt = Opt::parse();
 
-    if opt.file == None && !opt.quiet {
+    if opt.file.is_none() && !opt.quiet {
         println!("Please enter an expression (finish with <Enter><Ctrl-d>):");
     }
     let input = read_expression(&opt.file)?;
     let transformed;
     let expression =
-        if opt.informat == Format::Mathematica && input.find(b"\\[") != None {
+        if opt.informat == Format::Mathematica && input.find(b"\\[").is_some() {
             transformed =
                 formats::mathematica::unicode::mathematica_to_utf8(&input)?;
             parse(&transformed, opt.informat)?
