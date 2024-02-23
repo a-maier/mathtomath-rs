@@ -1,6 +1,6 @@
 use confy::ConfyError;
 use log::{debug, trace};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
