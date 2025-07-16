@@ -217,6 +217,8 @@ pub(crate) enum StaticToken {
     Optional,
     Or,
     Out,
+    OverHat,
+    OverTilde,
     LeftPart,
     RightPart,
     PatternTest,
@@ -707,6 +709,8 @@ pub(crate) const BUILTIN_SYMBOL: phf::Map<&'static str, StaticToken> = phf_map! 
     "Subscript" => StaticToken::Subscript,
     "Superscript" => StaticToken::Superscript,
     "Sqrt" => StaticToken::Sqrt,
+    "OverHat" => StaticToken::OverHat,
+    "OverTilde" => StaticToken::OverTilde,
 };
 
 lazy_static! {
@@ -844,6 +848,8 @@ lazy_static! {
         StaticToken::Or => PREC_OR,
         StaticToken::Or => PREC_OR,
         StaticToken::Out => PREC_OUT,
+        StaticToken::OverHat => PREC_SYMBOL,
+        StaticToken::OverTilde => PREC_SYMBOL,
         StaticToken::Pattern => PREC_PATTERN,
         StaticToken::PatternTest => PREC_PATTERN_TEST,
         StaticToken::Piecewise => PREC_PIECEWISE,
@@ -1087,6 +1093,8 @@ lazy_static! {
         StaticToken::Sqrt => Arity::Nullary,
         StaticToken::Subscript => Arity::Nullary,
         StaticToken::Superscript => Arity::Nullary,
+        StaticToken::OverHat => Arity::Nullary,
+        StaticToken::OverTilde => Arity::Nullary,
 
         // brackets
         StaticToken::LeftAngleBracket => Arity::Unary,
@@ -1434,6 +1442,8 @@ lazy_static! {
         StaticToken::Sqrt => NullaryOp::Sqrt,
         StaticToken::Subscript => NullaryOp::Subscript,
         StaticToken::Superscript => NullaryOp::Superscript,
+        StaticToken::OverHat => NullaryOp::OverHat,
+        StaticToken::OverTilde => NullaryOp::OverTilde,
     };
 }
 
