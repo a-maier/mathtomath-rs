@@ -172,6 +172,7 @@ fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
     alt((
         braced_whitespace,
         tag("&"),
+        tag("~"),
         comment,
         ignored_command,
         take_while(|u: u8| u.is_ascii_whitespace()),
