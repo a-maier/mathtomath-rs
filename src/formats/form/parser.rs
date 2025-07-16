@@ -82,32 +82,46 @@ impl<'a> Parser<'a> {
                 Token::Integer(int) => Ok(Nullary(Integer(int))),
                 Token::Static(s) => {
                     match NULL_ARITY.get(&s) {
-                        Some(Arity::Nullary) => Ok(Nullary(TOKEN_EXPRESSION[&s])),
-                        Some(Arity::Unary) => if let Some(closing) = CLOSING_BRACKET.get(&s) {
-                            // this is actually a bracket
-                            let arg = self.parse_with(next, 0)?;
-                            let next_token = next.as_ref().map(|(t, _pos)| t);
-                            if next_token == Some(&Token::Static(*closing)) {
-                                *next = self.lexer.next().transpose()?;
-                                Ok(bracket_to_expr(s, arg))
+                        Some(Arity::Nullary) => {
+                            Ok(Nullary(TOKEN_EXPRESSION[&s]))
+                        }
+                        Some(Arity::Unary) => {
+                            if let Some(closing) = CLOSING_BRACKET.get(&s) {
+                                // this is actually a bracket
+                                let arg = self.parse_with(next, 0)?;
+                                let next_token =
+                                    next.as_ref().map(|(t, _pos)| t);
+                                if next_token == Some(&Token::Static(*closing))
+                                {
+                                    *next = self.lexer.next().transpose()?;
+                                    Ok(bracket_to_expr(s, arg))
+                                } else {
+                                    let bracket = std::str::from_utf8(
+                                        &self.input[pos.start..pos.end],
+                                    )
+                                    .unwrap()
+                                    .to_owned();
+                                    Err(SyntaxError::new(
+                                        Unmatched(bracket),
+                                        pos.start,
+                                    ))
+                                }
                             } else {
-                                let bracket = std::str::from_utf8(
-                                    &self.input[pos.start..pos.end]
-                                ).unwrap().to_owned();
-                                Err(SyntaxError::new(Unmatched(bracket), pos.start))
+                                // standard unary prefix operator
+                                let prec = null_binding_power(token);
+                                let arg = self.parse_with(next, prec)?;
+                                Ok(prefix_op_to_expr(s, arg))
                             }
-                        } else {
-                            // standard unary prefix operator
-                            let prec = null_binding_power(token);
-                            let arg = self.parse_with(next, prec)?;
-                            Ok(prefix_op_to_expr(s, arg))
-                        },
+                        }
                         Some(arity) => unreachable!(
-                            "Internal error: {:?} has NULL_ARITY {:?}", s, arity
+                            "Internal error: {:?} has NULL_ARITY {:?}",
+                            s, arity
                         ),
                         None => Err(SyntaxError::new(
-                            ExpectNull("an atom, a unary prefix operator, or a bracket"),
-                            self.pos()
+                            ExpectNull(
+                                "an atom, a unary prefix operator, or a bracket",
+                            ),
+                            self.pos(),
                         )),
                     }
                 }

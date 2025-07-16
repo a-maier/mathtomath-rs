@@ -4,6 +4,7 @@ use crate::range::Range;
 
 use nom::Parser;
 use nom::{
+    IResult,
     branch::alt,
     bytes::complete::{
         escaped, is_not, tag, take_until, take_while, take_while1,
@@ -11,7 +12,6 @@ use nom::{
     character::complete::{char, none_of},
     combinator::opt,
     sequence::delimited,
-    IResult,
 };
 
 fn integer(i: &str) -> IResult<&str, &str> {
@@ -37,7 +37,8 @@ fn not_quote(i: &str) -> IResult<&str, &str> {
 }
 
 fn string(i: &str) -> IResult<&str, &str> {
-    delimited(char('"'), opt(not_quote), char('"')).parse(i)
+    delimited(char('"'), opt(not_quote), char('"'))
+        .parse(i)
         .map(|(rest, string)| (rest, string.unwrap_or("")))
 }
 
@@ -45,7 +46,8 @@ pub(crate) fn symbol(i: &str) -> IResult<&str, &str> {
     let (_rest, (a, b)) = (
         take_while1(|c: char| c.is_alphabetic() || c == '$'),
         take_while(|c: char| c.is_alphanumeric() || c == '$'),
-    ).parse(i)?;
+    )
+        .parse(i)?;
     Ok(reverse(i.split_at(a.len() + b.len())))
 }
 

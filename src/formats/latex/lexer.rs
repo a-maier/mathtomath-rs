@@ -2,26 +2,22 @@ use crate::error::{ErrorKind::*, SyntaxError};
 use crate::range::Range;
 
 use super::tokens::{
-    StaticToken, Token, BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN,
+    BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN, StaticToken, Token,
 };
 
 use nom::Parser;
 use nom::{
+    IResult,
     branch::alt,
     bytes::complete::{tag, take, take_until, take_while, take_while1},
     character::complete::char,
     sequence::{delimited, preceded, separated_pair},
-    IResult,
 };
 use std::str::from_utf8;
 
 fn trim_left(i: &[u8]) -> &[u8] {
     let pos = i.iter().position(|b| !b.is_ascii_whitespace());
-    if let Some(pos) = pos {
-        &i[pos..]
-    } else {
-        i
-    }
+    if let Some(pos) = pos { &i[pos..] } else { i }
 }
 
 fn parse_arg(i: &[u8]) -> IResult<&[u8], &[u8]> {
@@ -54,7 +50,8 @@ fn integer(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn real(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (_, (ipart, fpart)) = separated_pair(integer, char('.'), integer).parse(i)?;
+    let (_, (ipart, fpart)) =
+        separated_pair(integer, char('.'), integer).parse(i)?;
     Ok(reverse(i.split_at(ipart.len() + fpart.len() + 1)))
 }
 
@@ -65,7 +62,8 @@ pub(crate) fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
             let (rest, c) = preceded(
                 char('\\'),
                 take_while(|c: u8| c.is_ascii_alphabetic()),
-            ).parse(i)?;
+            )
+            .parse(i)?;
             if c.starts_with(b"text") {
                 parse_arg(rest)
             } else {
@@ -133,7 +131,7 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
         let rest = &i[1..];
         match bytes.next() {
             Some(next) if br" ;<,!\".contains(next) => {
-                return Ok(reverse(i.split_at(2)))
+                return Ok(reverse(i.split_at(2)));
             }
             Some(_) => {
                 let (_, tag) =
@@ -177,7 +175,8 @@ fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
         comment,
         ignored_command,
         take_while(|u: u8| u.is_ascii_whitespace()),
-    )).parse(i)
+    ))
+    .parse(i)
 }
 
 fn builtin(i: &[u8]) -> Option<(Token<'static>, usize)> {

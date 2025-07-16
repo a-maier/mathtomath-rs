@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use super::grammar::*;
 use super::lexer::Lexer;
 use super::tokens::{
-    StaticToken, Token, BINARY_OP_TO_EXPR, CLOSING_BRACKET, LEFT_ARITY,
-    NULL_ARITY, POSTFIX_OP_TO_EXPR, PREFIX_OP_TO_EXPR, TOKEN_EXPRESSION,
-    TOKEN_PREC,
+    BINARY_OP_TO_EXPR, CLOSING_BRACKET, LEFT_ARITY, NULL_ARITY,
+    POSTFIX_OP_TO_EXPR, PREFIX_OP_TO_EXPR, StaticToken, TOKEN_EXPRESSION,
+    TOKEN_PREC, Token,
 };
 use crate::arity::Arity;
 use crate::assoc::Assoc;
@@ -92,7 +92,9 @@ impl<'a> Parser<'a> {
             *next = self.lexer.next().transpose()?;
             left = match self.left(token, next, left) {
                 Err(ParseError::MulParsedAsFunction(left)) => {
-                    debug!("ambiguous function parse, backtrack and parse as multiplication");
+                    debug!(
+                        "ambiguous function parse, backtrack and parse as multiplication"
+                    );
                     self.lexer = Lexer::for_input(self.input);
                     let (_, pos) = token.unwrap();
                     self.lexer.skip_bytes(pos.start);
@@ -141,35 +143,47 @@ impl<'a> Parser<'a> {
                 Token::Static(s) => {
                     use Arity::*;
                     match NULL_ARITY.get(&s) {
-                        Some(Nullary) => Ok(
-                            Expression::Nullary(TOKEN_EXPRESSION[&s])
-                        ),
-                        Some(Unary) => if let Some(closing) = CLOSING_BRACKET.get(&s) {
-                            trace!("looking for {:?}", closing);
-                            // this is actually a bracket
-                            let arg = self.parse_with(next, 0)?;
-                            trace!("argument {:?}", arg);
-                            let next_token = next.as_ref().map(|(t, _pos)| t);
-                            if next_token == Some(&Token::Static(*closing)) {
-                                *next = self.lexer.next().transpose()?;
-                                Ok(bracket_to_expr(s, arg))
+                        Some(Nullary) => {
+                            Ok(Expression::Nullary(TOKEN_EXPRESSION[&s]))
+                        }
+                        Some(Unary) => {
+                            if let Some(closing) = CLOSING_BRACKET.get(&s) {
+                                trace!("looking for {:?}", closing);
+                                // this is actually a bracket
+                                let arg = self.parse_with(next, 0)?;
+                                trace!("argument {:?}", arg);
+                                let next_token =
+                                    next.as_ref().map(|(t, _pos)| t);
+                                if next_token == Some(&Token::Static(*closing))
+                                {
+                                    *next = self.lexer.next().transpose()?;
+                                    Ok(bracket_to_expr(s, arg))
+                                } else {
+                                    let bracket =
+                                        &self.input[pos.start..pos.end];
+                                    let bracket =
+                                        std::str::from_utf8(bracket).unwrap();
+                                    Err(SyntaxError::new(
+                                        Unmatched(bracket.to_owned()),
+                                        pos.start,
+                                    ))
+                                }
                             } else {
-                                let bracket = &self.input[pos.start..pos.end];
-                                let bracket = std::str::from_utf8(bracket).unwrap();
-                                Err(SyntaxError::new(Unmatched(bracket.to_owned()), pos.start))
+                                // standard unary prefix operator
+                                let prec = null_binding_power(token);
+                                let arg = self.parse_with(next, prec)?;
+                                Ok(prefix_op_to_expr(s, arg))
                             }
-                        } else {
-                            // standard unary prefix operator
-                            let prec = null_binding_power(token);
-                            let arg = self.parse_with(next, prec)?;
-                            Ok(prefix_op_to_expr(s, arg))
-                        },
+                        }
                         Some(arity) => unreachable!(
-                            "Internal error: {:?} has NULL_ARITY {:?}", s, arity
+                            "Internal error: {:?} has NULL_ARITY {:?}",
+                            s, arity
                         ),
                         None => Err(SyntaxError::new(
-                            ExpectNull("an atom, a unary prefix operator, or a bracket"),
-                            self.pos()
+                            ExpectNull(
+                                "an atom, a unary prefix operator, or a bracket",
+                            ),
+                            self.pos(),
                         )),
                     }
                 }
@@ -287,7 +301,7 @@ impl<'a> Parser<'a> {
                                             ParseError::MulParsedAsFunction(
                                                 left,
                                             ),
-                                        )
+                                        );
                                     }
                                 }
                             };
@@ -324,7 +338,9 @@ impl<'a> Parser<'a> {
                 self.lexer.skip_bytes(pos.start);
                 *next = self.lexer.next().transpose()?;
                 if is_operator_like_fn(&left) {
-                    debug!("no operator found: treat as application of {left:?} to argument");
+                    debug!(
+                        "no operator found: treat as application of {left:?} to argument"
+                    );
                     let arg = self.parse_with(next, PREC_SQRT)?;
                     trace!("argument: {arg:?}");
                     if let Expression::Binary(BinaryOp::Power, args) = left {

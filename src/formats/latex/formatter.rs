@@ -1,7 +1,7 @@
 // TODO: line length inside \frac
 use super::grammar::*;
 use crate::assoc::Assoc;
-use crate::cfg::{BracketSizing, LatexOutputCfg, CFG};
+use crate::cfg::{BracketSizing, CFG, LatexOutputCfg};
 use crate::expression::*;
 
 use std::collections::HashMap;
