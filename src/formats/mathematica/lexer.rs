@@ -2,6 +2,7 @@ use super::tokens::*;
 use crate::error::{ErrorKind::*, SyntaxError};
 use crate::range::Range;
 
+use nom::Parser;
 use nom::{
     branch::alt,
     bytes::complete::{
@@ -9,7 +10,7 @@ use nom::{
     },
     character::complete::{char, none_of},
     combinator::opt,
-    sequence::{delimited, tuple},
+    sequence::delimited,
     IResult,
 };
 
@@ -36,15 +37,15 @@ fn not_quote(i: &str) -> IResult<&str, &str> {
 }
 
 fn string(i: &str) -> IResult<&str, &str> {
-    delimited(char('"'), opt(not_quote), char('"'))(i)
+    delimited(char('"'), opt(not_quote), char('"')).parse(i)
         .map(|(rest, string)| (rest, string.unwrap_or("")))
 }
 
 pub(crate) fn symbol(i: &str) -> IResult<&str, &str> {
-    let (_rest, (a, b)) = tuple((
+    let (_rest, (a, b)) = (
         take_while1(|c: char| c.is_alphabetic() || c == '$'),
         take_while(|c: char| c.is_alphanumeric() || c == '$'),
-    ))(i)?;
+    ).parse(i)?;
     Ok(reverse(i.split_at(a.len() + b.len())))
 }
 
@@ -54,12 +55,12 @@ fn reverse<T, U>(tuple: (T, U)) -> (U, T) {
 
 fn comment(i: &str) -> IResult<&str, &str> {
     let (_rest, (a, b, c)) =
-        tuple((tag("(*"), take_until("*)"), tag("*)")))(i)?;
+        (tag("(*"), take_until("*)"), tag("*)")).parse(i)?;
     Ok(reverse(i.split_at(a.len() + b.len() + c.len())))
 }
 
 fn whitespace(i: &str) -> IResult<&str, &str> {
-    alt((comment, take_while(|u: char| u.is_ascii_whitespace())))(i)
+    alt((comment, take_while(|u: char| u.is_ascii_whitespace()))).parse(i)
 }
 
 fn builtin(i: &str) -> Option<(Token<'static>, usize)> {

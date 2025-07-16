@@ -5,6 +5,7 @@ use super::tokens::{
     StaticToken, Token, BUILTIN, BUILTIN_BACKSLASHED, MAX_TOKEN_STR_LEN,
 };
 
+use nom::Parser;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take, take_until, take_while, take_while1},
@@ -53,7 +54,7 @@ fn integer(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn real(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (_, (ipart, fpart)) = separated_pair(integer, char('.'), integer)(i)?;
+    let (_, (ipart, fpart)) = separated_pair(integer, char('.'), integer).parse(i)?;
     Ok(reverse(i.split_at(ipart.len() + fpart.len() + 1)))
 }
 
@@ -64,7 +65,7 @@ pub(crate) fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
             let (rest, c) = preceded(
                 char('\\'),
                 take_while(|c: u8| c.is_ascii_alphabetic()),
-            )(i)?;
+            ).parse(i)?;
             if c.starts_with(b"text") {
                 parse_arg(rest)
             } else {
@@ -81,7 +82,7 @@ fn reverse<T, U>(tuple: (T, U)) -> (U, T) {
 fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let rem = std::cmp::max(i.len(), 1) - 1;
     let (_rest, comment) =
-        preceded(char('%'), alt((take_until("\n"), take(rem))))(i)?;
+        preceded(char('%'), alt((take_until("\n"), take(rem)))).parse(i)?;
     Ok(reverse(i.split_at(comment.len() + 1)))
 }
 
@@ -165,7 +166,7 @@ fn ignored_command(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn braced_whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (_, ws) = delimited(char('{'), whitespace, char('}'))(i)?;
+    let (_, ws) = delimited(char('{'), whitespace, char('}')).parse(i)?;
     Ok(reverse(i.split_at(ws.len() + 2)))
 }
 
@@ -176,7 +177,7 @@ fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
         comment,
         ignored_command,
         take_while(|u: u8| u.is_ascii_whitespace()),
-    ))(i)
+    )).parse(i)
 }
 
 fn builtin(i: &[u8]) -> Option<(Token<'static>, usize)> {

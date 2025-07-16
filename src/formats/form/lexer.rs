@@ -3,16 +3,16 @@ use crate::range::Range;
 
 use std::str::from_utf8;
 
+use nom::{AsChar, Parser};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag, take_until, take_while, take_while1},
     character::{
-        complete::{char, one_of},
-        is_alphabetic, is_alphanumeric, is_digit,
+        complete::{char, one_of}
     },
     combinator::opt,
     multi::{many0, many1},
-    sequence::{delimited, preceded, terminated, tuple},
+    sequence::{delimited, preceded, terminated},
     IResult,
 };
 
@@ -83,18 +83,18 @@ const STR_TO_TOKEN: phf::Map<&'static [u8], StaticToken> = phf_map! {
 };
 
 fn integer(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    take_while1(is_digit)(i)
+    take_while1(AsChar::is_dec_digit)(i)
 }
 
 fn word_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let maybe_dollar = opt(char('$'));
-    let letters = take_while1(is_alphabetic);
-    let rest = take_while(is_alphanumeric);
+    let letters = take_while1(AsChar::is_alpha);
+    let rest = take_while(AsChar::is_alphanum);
     let maybe_underscore = opt(char('_'));
     let mut word_symbol =
-        tuple((maybe_dollar, letters, rest, maybe_underscore));
+        (maybe_dollar, letters, rest, maybe_underscore);
 
-    let (_, (maybe_dollar, letters, alnum, maybe_underscore)) = word_symbol(i)?;
+    let (_, (maybe_dollar, letters, alnum, maybe_underscore)) = word_symbol.parse(i)?;
     let dollar_len = if maybe_dollar.is_some() { 1 } else { 0 };
     let underscore_len = if maybe_underscore.is_some() { 1 } else { 0 };
     let len = dollar_len + letters.len() + alnum.len() + underscore_len;
@@ -104,12 +104,13 @@ fn word_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn bracket_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let mut symbol = delimited(
+    let
+        mut symbol = delimited(
         char('['),
         many0(alt((is_not("[]"), bracket_symbol))),
         char(']'),
     );
-    let (_rest, symbol) = symbol(i)?;
+    let (_rest, symbol) = symbol.parse(i)?;
     let symbol_len = symbol.into_iter().map(|s| s.len()).sum::<usize>() + 2;
     let (symbol, rest) = i.split_at(symbol_len);
     trace!("parsed symbol '{}'", from_utf8(symbol).unwrap());
@@ -117,7 +118,7 @@ fn bracket_symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 pub(crate) fn symbol(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    alt((word_symbol, bracket_symbol))(i)
+    alt((word_symbol, bracket_symbol)).parse(i)
 }
 
 fn ellipsis(i: &[u8]) -> IResult<&[u8], &[u8]> {
@@ -133,7 +134,7 @@ fn comment(i: &[u8]) -> IResult<&[u8], &[u8]> {
     let (rest, _) = many1(terminated(
         preceded(char('*'), take_until("\n")),
         char('\n'),
-    ))(i)?;
+    )).parse(i)?;
     let comment_len = i.len() - rest.len();
     Ok(reverse(i.split_at(comment_len)))
 }

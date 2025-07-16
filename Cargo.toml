@@ -9,16 +9,16 @@ readme = "Readme.md"
 categories = ["mathematics", "parser-implementations"]
 
 [dependencies]
-aho-corasick = "1.0"
+aho-corasick = "1.1"
 clap = { version = "4.5", features = ["derive"] }
-confy = "0.6"
+confy = "1.0"
 env_logger = "0.11"
-lazy_static = "1.4"
+lazy_static = "1.5"
 log = "0.4"
 maplit = "1.0"
-nom = "7"
-phf = { version = "0.11", features = ["macros"] }
+nom = "8"
+phf = { version = "0.12", features = ["macros"] }
 subslice = "0.2"
-regex = "1.5"
+regex = "1.11"
 ansi_term = "0.12"
 serde = { version = "1", features = ["derive"] }
