@@ -385,6 +385,8 @@ impl Printer {
                     NullaryOp::ATanh => Nullary(b"\\arctanh"),
                     NullaryOp::Sqrt => Nullary(b"\\sqrt"),
                     NullaryOp::Ellipsis => Nullary(b"\\dots"),
+                    NullaryOp::OverHat => Nullary(b"\\hat"),
+                    NullaryOp::OverTilde => Nullary(b"\\tilde"),
                     unknown => UnknownNullary(unknown),
                 };
                 (PREC_ATOM, kind, 0)
@@ -570,18 +572,23 @@ impl Printer {
                         let right = self.remove_bracket(right);
                         (PREC_ATOM, SubOrSuper(left, b"_", right))
                     }
-                    BinaryOp::Function => {
-                        if left.kind == Nullary(b"\\sqrt") {
-                            (
-                                PREC_LEFT_BRACKET,
-                                Circumfix(b"\\sqrt{", right, b"}"),
-                            )
-                        } else {
-                            (
-                                PREC_LEFT_BRACKET,
-                                Function(left, b"(", right, b")"),
-                            )
-                        }
+                    BinaryOp::Function => match left.kind {
+                        Nullary(b"\\sqrt") => (
+                            PREC_LEFT_BRACKET,
+                            Circumfix(b"\\sqrt{", right, b"}"),
+                        ),
+                        Nullary(b"\\hat") => (
+                            PREC_LEFT_BRACKET,
+                            Circumfix(b"\\hat{", right, b"}"),
+                        ),
+                        Nullary(b"\\tilde") => (
+                            PREC_LEFT_BRACKET,
+                            Circumfix(b"\\tilde{", right, b"}"),
+                        ),
+                        _ => (
+                            PREC_LEFT_BRACKET,
+                            Function(left, b"(", right, b")"),
+                        )
                     }
                     unknown => {
                         (PREC_LEFT_BRACKET, UnknownBinary(unknown, left, right))
