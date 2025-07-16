@@ -606,9 +606,6 @@ lazy_static! {
 
         StaticToken::DoubleFactorial => Arity::Unary,
         StaticToken::ConjugateTranspose => Arity::Unary,
-        StaticToken::OverHat => Arity::Unary,
-        StaticToken::OverTilde => Arity::Unary,
-        StaticToken::Calligraphic => Arity::Unary,
 
         StaticToken::And => Arity::Binary,
         StaticToken::Because => Arity::Binary,
