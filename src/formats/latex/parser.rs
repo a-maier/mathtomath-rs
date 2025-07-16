@@ -459,7 +459,7 @@ fn bracket_to_expr(
         StaticToken::LeftFloor => Floor,
         StaticToken::LeftList => List,
         StaticToken::LeftBrace => return arg,
-        _ => panic!("Internal error: {:?} is not a bracket", opening),
+        _ => panic!("Internal error: {opening:?} is not a bracket"),
     };
     Unary(op, Box::new(arg))
 }

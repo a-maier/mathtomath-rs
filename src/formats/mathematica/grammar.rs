@@ -191,7 +191,7 @@ pub const PREC_LEFT_ANGLE_BRACKET: u32 = 100;
 pub const PREC_LEFT_ASSOCIATION: u32 = 100;
 pub const PREC_LEFT_CEILING: u32 = 100;
 pub const PREC_LEFT_FLOOR: u32 = 100;
-pub const PREC_ATOM: u32 = std::u32::MAX;
+pub const PREC_ATOM: u32 = u32::MAX;
 
 // guesses
 pub const PREC_SEQUENCE: u32 = 10; // lower than COMPOUND_EXPRESSION (';')

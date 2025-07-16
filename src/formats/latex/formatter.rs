@@ -317,14 +317,14 @@ impl Printer {
             }
             UnknownNullary(sym) => {
                 let mut buf = Vec::new();
-                write!(buf, "\\text{{{:?}}}", sym)?;
+                write!(buf, "\\text{{{sym:?}}}")?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
             }
             UnknownUnary(sym, arg) => {
                 let bracket_level = arg.bracket_level;
                 let mut buf = Vec::new();
-                write!(buf, "\\text{{{:?}}}", sym)?;
+                write!(buf, "\\text{{{sym:?}}}")?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
                 self.write_left_bracket(w, b"(", bracket_level)?;
@@ -333,7 +333,7 @@ impl Printer {
             }
             UnknownBinary(sym, left, right) => {
                 let mut buf = Vec::new();
-                write!(buf, "\\text{{{:?}}}", sym)?;
+                write!(buf, "\\text{{{sym:?}}}")?;
                 self.write_all(w, &buf)?;
                 self.add_to_line_len(buf.len() - 7);
                 let bracket_level =

@@ -50,8 +50,7 @@ pub(crate) fn function_to_expr<'a>(
             Binary(Coefficient, args)
         }
         _ => unreachable!(
-            "Internal error: function-like operator {:?} to expression",
-            op
+            "Internal error: function-like operator {op:?} to expression"
         ),
     }
 }
@@ -102,7 +101,7 @@ pub const PREC_DOT: u32 = 80;
 pub const PREC_LEFT_BRACKET: u32 = 90;
 pub const PREC_LEFT_SQUARE_BRACKET: u32 = 100;
 pub const PREC_WILDCARD: u32 = 110;
-pub const PREC_ATOM: u32 = std::u32::MAX;
+pub const PREC_ATOM: u32 = u32::MAX;
 
 pub fn is_symbol(i: &[u8]) -> bool {
     match lexer::symbol(i) {

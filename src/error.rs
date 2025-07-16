@@ -35,14 +35,14 @@ impl fmt::Display for SyntaxError {
         use ErrorKind::*;
         match self.kind {
             EarlyEof(s) => {
-                write!(f, "unexpected end of expression, expected {}", s)
+                write!(f, "unexpected end of expression, expected {s}")
             }
             ExpectLeft(s) | ExpectNull(s) => {
-                write!(f, "unexpected token, expected {}", s)
+                write!(f, "unexpected token, expected {s}")
             }
             NotAToken => write!(f, "unknown token"),
-            Unmatched(ref b) => write!(f, "unmatched bracket {}", b),
-            Utf8Error(err) => write!(f, "utf8 conversion error: {}", err),
+            Unmatched(ref b) => write!(f, "unmatched bracket {b}"),
+            Utf8Error(err) => write!(f, "utf8 conversion error: {err}"),
             RemainingToken => {
                 write!(f, "remaining text after parsing expression")
             }

@@ -125,7 +125,7 @@ fn write_expression(
 
 fn main() {
     let exit_code = if let Err(err) = run() {
-        eprintln!("{}", err);
+        eprintln!("{err}");
         if let Error::Parse(err) = err {
             if let Some(context) = err.context {
                 eprintln!(

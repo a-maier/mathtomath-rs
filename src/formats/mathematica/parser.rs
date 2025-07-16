@@ -208,11 +208,10 @@ fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
                     *prec
                 } else if UNKNOWN_TOKEN_PREC.contains(&other) {
                     panic!(
-                        "Internal error: unknown precedence of token {:?}",
-                        other
+                        "Internal error: unknown precedence of token {other:?}"
                     )
                 } else {
-                    unreachable!("Internal error: token {:?}", other)
+                    unreachable!("Internal error: token {other:?}")
                 }
             }
             _ => unimplemented!(),
@@ -251,7 +250,7 @@ fn bracket_to_expr(
         StaticToken::LeftCeiling => Ceiling,
         StaticToken::LeftFloor => Floor,
         StaticToken::LeftList => List,
-        _ => panic!("Internal error: {:?} is not a bracket", opening),
+        _ => panic!("Internal error: {opening:?} is not a bracket"),
     };
     Unary(op, Box::new(arg))
 }

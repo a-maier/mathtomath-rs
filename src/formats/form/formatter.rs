@@ -95,19 +95,19 @@ fn format<W: io::Write>(
             w.write_all(right)?;
         }
         UnknownNullary(sym) => {
-            warn!("Symbol '{:?}' does not exist in FORM", sym);
-            write!(w, "{:?}", sym)?;
+            warn!("Symbol '{sym:?}' does not exist in FORM");
+            write!(w, "{sym:?}")?;
         }
         UnknownUnary(sym, arg) => {
-            warn!("Unary operator '{:?}' does not exist in FORM", sym);
-            write!(w, "{:?}(", sym)?;
+            warn!("Unary operator '{sym:?}' does not exist in FORM");
+            write!(w, "{sym:?}(")?;
             let arg = properties(arg);
             format(w, arg, false)?;
             write!(w, ")")?;
         }
         UnknownBinary(sym, left, right) => {
-            warn!("Binary operator '{:?}' does not exist in FORM", sym);
-            write!(w, "{:?}(", sym)?;
+            warn!("Binary operator '{sym:?}' does not exist in FORM");
+            write!(w, "{sym:?}(")?;
             let arg =
                 Expression::Binary(BinaryOp::Sequence, Box::new((left, right)));
             let arg = properties(arg);
