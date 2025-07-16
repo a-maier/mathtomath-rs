@@ -53,7 +53,7 @@ impl<'a> Parser<'a> {
     fn parse(&mut self) -> Result<Expression<'a>, SyntaxError> {
         let mut next = self.lexer.next().transpose()?;
         let res = self.parse_with(&mut next, 0)?;
-        debug!("remaining token: {:?}", next);
+        debug!("remaining token: {next:?}");
         match next {
             None => Ok(res),
             Some((token, pos)) => {
@@ -83,7 +83,7 @@ impl<'a> Parser<'a> {
         next: &mut Option<(Token<'a>, Range<usize>)>,
         right_binding_power: u32,
     ) -> Result<Expression<'a>, SyntaxError> {
-        debug!("parser called with rbp {}", right_binding_power);
+        debug!("parser called with rbp {right_binding_power}");
         let mut token = *next;
         *next = self.lexer.next().transpose()?;
         let mut left = self.null(token, next)?;
@@ -110,7 +110,7 @@ impl<'a> Parser<'a> {
                 Ok(expr) => expr,
             };
         }
-        debug!("end parser call with rbp {}", right_binding_power);
+        debug!("end parser call with rbp {right_binding_power}");
         Ok(left)
     }
 
@@ -121,7 +121,7 @@ impl<'a> Parser<'a> {
     ) -> Result<Expression<'a>, SyntaxError> {
         use Expression::*;
         use NullaryOp::*;
-        debug!("null called on token {:?}", token);
+        debug!("null called on token {token:?}");
         if let Some((tok, pos)) = token {
             match tok {
                 Token::Symbol(name) => {
@@ -132,9 +132,9 @@ impl<'a> Parser<'a> {
                 Token::Real(x) => Ok(Nullary(Real(x))),
                 Token::Static(StaticToken::Frac) => {
                     let num = self.parse_with(next, PREC_FRAC)?;
-                    trace!("fraction num: {:?}", num);
+                    trace!("fraction num: {num:?}");
                     let den = self.parse_with(next, PREC_FRAC)?;
-                    trace!("fraction den: {:?}", num);
+                    trace!("fraction den: {num:?}");
                     Ok(Expression::Binary(
                         BinaryOp::Divide,
                         Box::new((num, den)),
@@ -148,10 +148,10 @@ impl<'a> Parser<'a> {
                         }
                         Some(Unary) => {
                             if let Some(closing) = CLOSING_BRACKET.get(&s) {
-                                trace!("looking for {:?}", closing);
+                                trace!("looking for {closing:?}");
                                 // this is actually a bracket
                                 let arg = self.parse_with(next, 0)?;
-                                trace!("argument {:?}", arg);
+                                trace!("argument {arg:?}");
                                 let next_token =
                                     next.as_ref().map(|(t, _pos)| t);
                                 if next_token == Some(&Token::Static(*closing))
@@ -222,7 +222,7 @@ impl<'a> Parser<'a> {
         next: &mut Option<(Token<'a>, Range<usize>)>,
         left: Expression<'a>,
     ) -> Result<Expression<'a>, ParseError<'a>> {
-        debug!("left called on token {:?}", token);
+        debug!("left called on token {token:?}");
         match token {
             Some((Token::Static(StaticToken::Subscript), _)) => {
                 let right = self.parse_with(next, PREC_SUBSCRIPT)?;
@@ -238,7 +238,7 @@ impl<'a> Parser<'a> {
             }
             Some((Token::Static(s), ref pos)) => {
                 use Arity::*;
-                trace!("left arity for {:?}: {:?}", s, LEFT_ARITY.get(&s));
+                trace!("left arity for {s:?}: {:?}", LEFT_ARITY.get(&s));
                 match LEFT_ARITY.get(&s) {
                     Some(Unary) => Ok(postfix_op_to_expr(s, left)),
                     Some(Binary) => {
@@ -308,12 +308,11 @@ impl<'a> Parser<'a> {
                         Ok(Expression::Binary(op, Box::new((left, arg))))
                     }
                     Some(arity) => unreachable!(
-                        "Internal error: {:?} has LEFT_ARITY {:?}",
-                        s, arity
+                        "Internal error: {s:?} has LEFT_ARITY {arity:?}"
                     ),
                     None => {
                         debug!("no operator found: treat as multiplication");
-                        trace!("left multiplier: {:?}", left);
+                        trace!("left multiplier: {left:?}");
                         let rhs = if let Some(closing) = CLOSING_BRACKET.get(&s)
                         {
                             self.parse_bracket(next, *closing, pos)?
@@ -324,7 +323,7 @@ impl<'a> Parser<'a> {
                             *next = self.lexer.next().transpose()?;
                             self.parse_with(next, PREC_TIMES)?
                         };
-                        trace!("right multiplier: {:?}", rhs);
+                        trace!("right multiplier: {rhs:?}");
                         Ok(Expression::Binary(
                             BinaryOp::Times,
                             Box::new((left, rhs)),
@@ -361,9 +360,9 @@ impl<'a> Parser<'a> {
                     }
                 } else {
                     debug!("no operator found: treat as multiplication");
-                    trace!("left multiplier: {:?}", left);
+                    trace!("left multiplier: {left:?}");
                     let rhs = self.parse_with(next, PREC_TIMES)?;
-                    trace!("right multiplier: {:?}", rhs);
+                    trace!("right multiplier: {rhs:?}");
                     Ok(Expression::Binary(
                         BinaryOp::Times,
                         Box::new((left, rhs)),
@@ -411,7 +410,7 @@ fn is_operator_like_fn(expr: &Expression<'_>) -> bool {
 }
 
 fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
-    debug!("look up left binding power of {:?}", token);
+    debug!("look up left binding power of {token:?}");
     use Token::*;
     if let Some((token, _pos)) = token {
         match token {
@@ -431,7 +430,7 @@ fn left_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
 }
 
 fn null_binding_power(token: Option<(Token<'_>, Range<usize>)>) -> u32 {
-    debug!("look up null binding power of {:?}", token);
+    debug!("look up null binding power of {token:?}");
     if let Some((tok, _pos)) = token {
         match tok {
             Token::Static(StaticToken::Minus) => PREC_UMINUS,
@@ -467,7 +466,7 @@ fn bracket_to_expr(
 fn prefix_op_to_expr(op: StaticToken, arg: Expression<'_>) -> Expression<'_> {
     match op {
         StaticToken::Sqrt | StaticToken::OverHat | StaticToken::OverTilde => {
-            trace!("{op:?} with arg {:?}", arg);
+            trace!("{op:?} with arg {arg:?}");
             Expression::Binary(
                 BinaryOp::Function,
                 Box::new((
