@@ -29,8 +29,6 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
-          - x86_64-apple-darwin
-          - x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -43,5 +41,39 @@ jobs:
         with:
           file: target/${{ matrix.target }}/release/mathtomath
           asset_name: mathtomath-${{ github.ref_name }}-${{ matrix.target }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+
+  publish-macos:
+    name: Publish for x86_64-apple-darwin
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+      - run: cargo build --target x86_64-apple-darwin --release
+      - uses: svenstaro/upload-release-action@v2
+        with:
+          file: target/x86_64-apple-darwin/release/mathtomath
+          asset_name: mathtomath-${{ github.ref_name }}-x86_64-apple-darwin
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+
+  publish-windows:
+    name: Publish for x86_64-pc-windows-msvc
+    needs: create-release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - run: cargo build --target x86_64-pc-windows-msvc --release
+      - uses: svenstaro/upload-release-action@v2
+        with:
+          file: .\target\x86_64-pc-windows-msvc\release\mathtomath.exe
+          asset_name: mathtomath-${{ github.ref_name }}-x86_64-pc-windows-msvc.exe
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
